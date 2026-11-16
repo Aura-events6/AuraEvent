@@ -36,6 +36,7 @@ import {
   Package,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 import { glassStyles } from '../../theme/glass';
@@ -72,9 +73,14 @@ export const ExpenseTrackerScreen: React.FC = () => {
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < 600;
 
+  const insets = useSafeAreaInsets();
   const isOwner = user?.role === 'owner' || user?.role === 'superadmin';
   const hallId = hall?.id || (user as any)?.hallId;
   const currencySymbol = hall?.currency_symbol || '₹';
+
+  // Dynamic bottom offset for Floating Action Button so it floats cleanly above the gliding bottom tab bar
+  const navBarOffset = (insets.bottom > 0 ? insets.bottom + (Platform.OS === 'android' ? 8 : 8) : 16) + 60;
+  const fabBottom = navBarOffset + 14;
 
   // State: Data
   const [expenses, setExpenses] = useState<HallExpense[]>([]);
@@ -413,7 +419,10 @@ export const ExpenseTrackerScreen: React.FC = () => {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingHorizontal: isMobile ? 16 : 24 },
+          {
+            paddingHorizontal: isMobile ? 16 : 24,
+            paddingBottom: fabBottom + 64,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -966,7 +975,7 @@ export const ExpenseTrackerScreen: React.FC = () => {
       </ScrollView>
 
       {/* FLOATING ACTION BUTTON */}
-      <View style={styles.fabWrap}>
+      <View style={[styles.fabWrap, { bottom: fabBottom }]}>
         <TouchableOpacity
           onPress={openNewExpenseSheet}
           activeOpacity={0.88}
@@ -1412,11 +1421,11 @@ const styles = StyleSheet.create({
   },
   fabWrap: {
     position: 'absolute',
-    bottom: 24,
     left: 0,
     right: 0,
     alignItems: 'center',
     pointerEvents: 'box-none',
+    zIndex: 50,
   },
   fabBtn: {
     flexDirection: 'row',
