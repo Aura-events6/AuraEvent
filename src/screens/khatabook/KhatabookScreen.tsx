@@ -21,8 +21,6 @@ import {
   CreditCard,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
-  Radio,
   ShieldAlert,
 } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -69,30 +67,6 @@ export const KhatabookScreen: React.FC = () => {
 
   // Active Selected Due for Payment Modal
   const [activePaymentDue, setActivePaymentDue] = useState<KhatabookDueItem | null>(null);
-
-  // Realtime Live Sync Breathing Dot Animation
-  const liveSyncDotAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(liveSyncDotAnim, {
-          toValue: 1.35,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(liveSyncDotAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-
-    return () => {
-      pulse.stop();
-    };
-  }, []);
 
   // Fetch dues from PostgreSQL
   const loadDues = useCallback(async (isSilent = false) => {
@@ -261,19 +235,6 @@ export const KhatabookScreen: React.FC = () => {
             Customer Dues & Balance Recovery
           </Text>
         </View>
-
-        {/* Live Realtime Sync Indicator */}
-        <View style={styles.liveSyncBadge}>
-          <Animated.View
-            style={[
-              styles.liveSyncDot,
-              {
-                transform: [{ scale: liveSyncDotAnim }],
-              },
-            ]}
-          />
-          <Text style={styles.liveSyncText}>Live Sync</Text>
-        </View>
       </View>
 
       {/* Main Content List */}
@@ -305,6 +266,8 @@ export const KhatabookScreen: React.FC = () => {
                 metrics={metrics}
                 currencySymbol={currencySymbol}
                 isDark={isDark}
+                selectedFilter={selectedFilter}
+                onSelectFilter={setSelectedFilter}
               />
 
               {/* Search Bar */}
@@ -349,7 +312,7 @@ export const KhatabookScreen: React.FC = () => {
               <Text style={[styles.emptyTitle, { color: t.text }]}>
                 {searchQuery
                   ? 'No matching dues found'
-                  : 'All dues collected! 🎉'}
+                  : 'All dues collected!'}
               </Text>
               <Text style={[styles.emptySubtitle, { color: t.textMuted }]}>
                 {searchQuery
@@ -412,26 +375,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 1,
-  },
-  liveSyncBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  liveSyncDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  liveSyncText: {
-    color: '#059669',
-    fontSize: 10,
-    fontWeight: '700',
   },
   listContent: {
     padding: 16,
