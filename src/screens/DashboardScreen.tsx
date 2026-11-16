@@ -226,7 +226,7 @@ export const DashboardScreen: React.FC = () => {
     // 2. Optimistic Timeline row prepend
     const newRow: DashboardTimelineRowItem = {
       id: `opt-${Date.now()}`,
-      timeLabel: 'Just now • Live Sync',
+      timeLabel: 'Just now • Confirmed',
       title: `Payment Collected: ₹${val.toLocaleString('en-IN')}`,
       subtitle: `${selectedDue.customerName} (${selectedDue.eventType})`,
       category: 'payments',
@@ -348,48 +348,13 @@ export const DashboardScreen: React.FC = () => {
               </LinearGradient>
             </Animated.View>
             <View style={styles.brandTextCol}>
-              <View style={styles.titleWithLive}>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={[styles.headerTitle, { color: t.text }]}
-                >
-                  {hall?.name || user?.hallName || 'Royal Palace'}
-                </Text>
-                <View
-                  style={[
-                    styles.liveBadge,
-                    {
-                      backgroundColor: isDark
-                        ? colors.status.success.bgDark
-                        : colors.status.success.bgLight,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.livePulseDot,
-                      {
-                        backgroundColor: isDark
-                          ? colors.status.success.dark
-                          : colors.status.success.light,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.liveText,
-                      {
-                        color: isDark
-                          ? colors.status.success.dark
-                          : colors.status.success.light,
-                      },
-                    ]}
-                  >
-                    Live
-                  </Text>
-                </View>
-              </View>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[styles.headerTitle, { color: t.text }]}
+              >
+                {hall?.name || user?.hallName || 'Royal Palace'}
+              </Text>
               <Text numberOfLines={1} style={[styles.headerSubtitle, { color: t.textMuted }]}>
                 {new Date().toLocaleString('en-US', { month: 'short' })} {new Date().getFullYear()} • Operations
               </Text>
@@ -810,11 +775,6 @@ export const DashboardScreen: React.FC = () => {
         <View style={styles.timelineHeader}>
           <View style={styles.sectionTitleRow}>
             <Text style={[styles.sectionTitle, { color: t.text }]}>Completed Timeline</Text>
-            <View style={[styles.chronBadge, { backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg }]}>
-              <Text style={[styles.chronBadgeText, { color: isDark ? colors.gold[400] : colors.gold[600] }]}>
-                Live Sync
-              </Text>
-            </View>
           </View>
 
           {/* 3.3 Sliding Pill with Overshoot Spring */}
