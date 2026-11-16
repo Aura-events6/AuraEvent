@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Clock, Sun, Moon, CheckCircle2 } from 'lucide-react-native';
 import { CalendarBooking } from '../../types/calendar';
 import { colors } from '../../theme/colors';
@@ -77,15 +77,15 @@ export const SlotCard: React.FC<SlotCardProps> = ({
               ? 'rgba(28, 26, 24, 0.88)'
               : 'rgba(35, 33, 30, 0.82)'
             : isElapsed
-              ? 'rgba(248, 247, 245, 0.95)'
-              : 'rgba(255, 255, 255, 0.72)',
+              ? (Platform.OS === 'web' ? 'rgba(248, 247, 245, 0.95)' : '#F5F5F4')
+              : (Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.72)' : '#FFFFFF'),
           borderColor: isDark
             ? isElapsed
               ? 'rgba(214, 174, 107, 0.22)'
               : 'rgba(255, 255, 255, 0.08)'
             : isElapsed
               ? 'rgba(198, 151, 73, 0.25)'
-              : 'rgba(255, 255, 255, 0.92)',
+              : (Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(198, 151, 73, 0.22)'),
           transform: [{ scale: pressed ? (isElapsed ? 0.985 : 0.965) : 1 }],
         },
       ]}
@@ -255,6 +255,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: -0.2,
+    backgroundColor: 'transparent',
   },
   slotBadge: {
     flexDirection: 'row',
@@ -269,6 +270,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.3,
+    backgroundColor: 'transparent',
   },
   elapsedBadge: {
     flexDirection: 'row',
@@ -284,6 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.4,
+    backgroundColor: 'transparent',
   },
   subtitleRow: {
     flexDirection: 'row',
@@ -294,10 +297,12 @@ const styles = StyleSheet.create({
   packageSubtitle: {
     fontSize: 11,
     fontWeight: '600',
+    backgroundColor: 'transparent',
   },
   elapsedLabel: {
     fontSize: 10,
     fontWeight: '500',
+    backgroundColor: 'transparent',
   },
   footerRow: {
     flexDirection: 'row',
@@ -320,10 +325,12 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '700',
+    backgroundColor: 'transparent',
   },
   amountText: {
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: -0.2,
+    backgroundColor: 'transparent',
   },
 });

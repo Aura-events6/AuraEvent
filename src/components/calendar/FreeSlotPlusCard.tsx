@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, Clock, ArrowRight } from 'lucide-react-native';
 import { BookingSlot } from '../../types/calendar';
@@ -41,7 +41,9 @@ export const FreeSlotPlusCard: React.FC<FreeSlotPlusCardProps> = ({
           ? {
               backgroundColor: isDark
                 ? 'rgba(35, 33, 30, 0.30)'
-                : 'rgba(245, 245, 244, 0.38)',
+                : Platform.OS === 'web'
+                  ? 'rgba(245, 245, 244, 0.38)'
+                  : '#F5F5F4',
               borderColor: isDark
                 ? 'rgba(255, 255, 255, 0.12)'
                 : 'rgba(0, 0, 0, 0.10)',
@@ -49,10 +51,12 @@ export const FreeSlotPlusCard: React.FC<FreeSlotPlusCardProps> = ({
           : {
               backgroundColor: isDark
                 ? 'rgba(35, 33, 30, 0.45)'
-                : 'rgba(255, 255, 255, 0.42)',
+                : Platform.OS === 'web'
+                  ? 'rgba(255, 255, 255, 0.42)'
+                  : '#FFFFFF',
               borderColor: isDark
                 ? 'rgba(214, 174, 107, 0.35)'
-                : 'rgba(198, 151, 73, 0.45)',
+                : 'rgba(198, 151, 73, 0.40)',
             },
         { transform: [{ scale: pressed ? (isElapsed ? 0.985 : 0.965) : 1 }] },
       ]}
@@ -184,11 +188,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: -0.2,
+    backgroundColor: 'transparent',
   },
   slotSubtitle: {
     fontSize: 11,
     fontWeight: '400',
     marginTop: 2,
+    backgroundColor: 'transparent',
   },
   plusButtonCircle: {
     width: 32,

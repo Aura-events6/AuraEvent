@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CalendarBooking, BookingSlot, SlotMode } from '../../types/calendar';
 import { SlotCard } from './SlotCard';
@@ -95,10 +95,12 @@ export const DateRowItem: React.FC<DateRowItemProps> = ({
               {
                 backgroundColor: isDark
                   ? 'rgba(35, 33, 30, 0.82)'
-                  : 'rgba(255, 255, 255, 0.72)',
+                  : Platform.OS === 'web'
+                    ? 'rgba(255, 255, 255, 0.72)'
+                    : '#FFFFFF',
                 borderColor: isDark
                   ? 'rgba(255, 255, 255, 0.08)'
-                  : 'rgba(255, 255, 255, 0.92)',
+                  : 'rgba(198, 151, 73, 0.22)',
               },
             ]}
           >
@@ -284,17 +286,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.8,
+    backgroundColor: 'transparent',
   },
   dayNumberText: {
     fontSize: 22,
     fontWeight: '800',
     lineHeight: 26,
     marginTop: 2,
+    backgroundColor: 'transparent',
   },
   monthNameText: {
     fontSize: 10,
     fontWeight: '600',
     marginTop: 2,
+    backgroundColor: 'transparent',
   },
   slotsCol: {
     flex: 1,

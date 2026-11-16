@@ -32,6 +32,8 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 import { glassStyles } from '../../theme/glass';
@@ -52,6 +54,7 @@ type BookingDetailsRouteParams = {
 export const BookingDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: BookingDetailsRouteParams }, 'params'>>();
+  const insets = useSafeAreaInsets();
   const { hall, user, theme, logout } = useAuth();
   const isDark = theme === 'dark';
   const t = isDark ? colors.dark : colors.light;
@@ -246,7 +249,10 @@ export const BookingDetailsScreen: React.FC = () => {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 84 + Math.max(insets.bottom, 16) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Cancelled Banner if applicable */}
@@ -679,15 +685,41 @@ export const BookingDetailsScreen: React.FC = () => {
           style={[
             styles.bottomBar,
             {
-              backgroundColor: isDark
-                ? 'rgba(24, 23, 22, 0.96)'
-                : 'rgba(255, 255, 255, 0.96)',
+              backgroundColor: isDark ? '#1C1917' : '#FFFFFF',
               borderTopColor: isDark
-                ? 'rgba(255, 255, 255, 0.08)'
-                : 'rgba(0, 0, 0, 0.06)',
+                ? 'rgba(214, 174, 107, 0.20)'
+                : 'rgba(198, 151, 73, 0.18)',
+              paddingBottom: Math.max(insets.bottom, 14),
             },
           ]}
         >
+          {/* Cancel Booking Button (Owner Only, ONLY FOR ACTIVE UPCOMING EVENTS) */}
+          {isOwner && !isElapsed && (
+            <Pressable
+              onPress={() => setIsCancelModalOpen(true)}
+              style={({ pressed }) => [
+                styles.cancelActionBtn,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(239, 68, 68, 0.12)'
+                    : 'rgba(239, 68, 68, 0.08)',
+                  borderColor: isDark
+                    ? 'rgba(239, 68, 68, 0.28)'
+                    : 'rgba(239, 68, 68, 0.20)',
+                  transform: [{ scale: pressed ? 0.95 : 1 }],
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel Booking"
+            >
+              <Trash2
+                size={18}
+                color={isDark ? '#F87171' : '#DC2626'}
+                strokeWidth={2.2}
+              />
+            </Pressable>
+          )}
+
           {/* Edit Booking Button: ONLY SHOWN IF NOT ELAPSED */}
           {!isElapsed && (
             <Pressable
@@ -701,23 +733,30 @@ export const BookingDetailsScreen: React.FC = () => {
                 styles.editBtn,
                 {
                   backgroundColor: isDark
-                    ? 'rgba(214, 174, 107, 0.20)'
-                    : 'rgba(198, 151, 73, 0.18)',
-                  borderColor: isDark ? colors.gold[400] : colors.gold[600],
-                  transform: [{ scale: pressed ? 0.965 : 1 }],
+                    ? 'rgba(214, 174, 107, 0.10)'
+                    : '#FFFFFF',
+                  borderColor: isDark
+                    ? 'rgba(214, 174, 107, 0.35)'
+                    : 'rgba(198, 151, 73, 0.35)',
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
                 },
               ]}
               accessibilityRole="button"
               accessibilityLabel="Edit Details"
             >
-              <Pencil size={16} color={isDark ? colors.gold[400] : colors.gold[600]} />
+              <Pencil
+                size={16}
+                color={isDark ? colors.gold[400] : colors.gold[700]}
+                strokeWidth={2.2}
+              />
               <Text
+                numberOfLines={1}
                 style={[
                   styles.editBtnText,
-                  { color: isDark ? colors.gold[400] : colors.gold[600] },
+                  { color: isDark ? colors.gold[400] : colors.gold[700] },
                 ]}
               >
-                Edit Details
+                {Number(booking.pending_balance) > 0 ? 'Edit' : 'Edit Details'}
               </Text>
             </Pressable>
           )}
@@ -727,20 +766,26 @@ export const BookingDetailsScreen: React.FC = () => {
             <Pressable
               onPress={() => setIsRecordPaymentOpen(true)}
               style={({ pressed }) => [
-                styles.recordPaymentBarBtn,
+                styles.recordPaymentWrap,
                 {
-                  backgroundColor: isDark ? colors.gold[500] : colors.gold[600],
-                  flex: isElapsed ? 1 : undefined,
-                  transform: [{ scale: pressed ? 0.965 : 1 }],
+                  flex: isElapsed ? 1 : 1.6,
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
                 },
               ]}
               accessibilityRole="button"
               accessibilityLabel={isElapsed ? 'Record Due Settlement' : 'Record Payment'}
             >
-              <CreditCard size={16} color="#000000" />
-              <Text style={styles.recordPaymentBarBtnText}>
-                {isElapsed ? 'Record Due Settlement' : 'Record Payment'}
-              </Text>
+              <LinearGradient
+                colors={colors.goldGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.recordPaymentGradient}
+              >
+                <CreditCard size={16} color="#FFFFFF" strokeWidth={2.2} />
+                <Text numberOfLines={1} style={styles.recordPaymentBarBtnText}>
+                  {isElapsed ? 'Record Settlement' : 'Record Payment'}
+                </Text>
+              </LinearGradient>
             </Pressable>
           )}
 
@@ -751,34 +796,20 @@ export const BookingDetailsScreen: React.FC = () => {
               style={({ pressed }) => [
                 styles.shareReceiptFullBtn,
                 {
-                  backgroundColor: isDark ? 'rgba(37, 211, 102, 0.16)' : 'rgba(37, 211, 102, 0.12)',
+                  backgroundColor: isDark
+                    ? 'rgba(37, 211, 102, 0.14)'
+                    : 'rgba(37, 211, 102, 0.10)',
                   borderColor: 'rgba(37, 211, 102, 0.35)',
-                  transform: [{ scale: pressed ? 0.965 : 1 }],
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
                 },
               ]}
               accessibilityRole="button"
               accessibilityLabel="Share Completed Receipt"
             >
-              <MessageCircle size={16} color="#25D366" />
+              <MessageCircle size={16} color="#25D366" strokeWidth={2.2} />
               <Text style={[styles.shareReceiptFullBtnText, { color: '#25D366' }]}>
-                Share Completed Receipt (WhatsApp)
+                Share WhatsApp Receipt
               </Text>
-            </Pressable>
-          )}
-
-          {/* Cancel Booking Button (Owner Only, ONLY FOR ACTIVE UPCOMING EVENTS) */}
-          {isOwner && !isElapsed && (
-            <Pressable
-              onPress={() => setIsCancelModalOpen(true)}
-              style={({ pressed }) => [
-                styles.cancelBookingBtn,
-                { transform: [{ scale: pressed ? 0.965 : 1 }] },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel Booking"
-            >
-              <Trash2 size={16} color="#FFFFFF" />
-              <Text style={styles.cancelBookingBtnText}>Cancel</Text>
             </Pressable>
           )}
         </View>
@@ -1060,10 +1091,23 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
-    gap: 12,
+    gap: 10,
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  cancelActionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editBtn: {
     flex: 1,
@@ -1073,45 +1117,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 10,
   },
   editBtnText: {
     fontSize: 14,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
-  cancelBookingBtn: {
-    flex: 1,
+  recordPaymentWrap: {
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#EF4444',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#EF4444',
+    shadowColor: colors.gold[500],
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.32,
     shadowRadius: 8,
     elevation: 4,
   },
-  cancelBookingBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  recordPaymentBarBtn: {
-    flex: 1.3,
-    height: 48,
+  recordPaymentGradient: {
+    flex: 1,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    paddingHorizontal: 14,
   },
   recordPaymentBarBtnText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   reversalPill: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
