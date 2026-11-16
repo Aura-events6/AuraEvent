@@ -12,6 +12,7 @@ node_modules/
 .env*.local
 .env.local
 *.env
+eas.json
 *.pem
 *.key
 *.keystore
