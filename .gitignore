@@ -35,6 +35,8 @@ migrations/
 .expo/
 dist/
 web-build/
+android/
+ios/
 
 # Android / iOS Binaries
 *.apk
