@@ -1,0 +1,61 @@
+# =========================================================
+# DEPENDENCIES
+# =========================================================
+node_modules/
+.pnp
+.pnp.js
+
+# =========================================================
+# ENVIRONMENT, CREDENTIALS & SECRETS
+# =========================================================
+.env
+.env*.local
+.env.local
+*.env
+*.pem
+*.key
+*.keystore
+*.jks
+
+# Supabase Local Cache & Secrets
+supabase/.temp/
+
+# =========================================================
+# DOCUMENTATION, REFERENCES & MIGRATIONS (USER REQUESTED)
+# =========================================================
+frontend-guides/
+HTML-Reference/
+supabase/migrations/
+migrations/
+
+# =========================================================
+# EXPO & BUILD ARTIFACTS
+# =========================================================
+.expo/
+dist/
+web-build/
+
+# Android / iOS Binaries
+*.apk
+*.aab
+*.ipa
+
+# Metro Cache
+.metro-health-check*
+
+# =========================================================
+# AGENTS, SKILLS & LOCAL TOOLING
+# =========================================================
+.agents/
+skills-lock.json
+
+# =========================================================
+# SYSTEM & IDE
+# =========================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
