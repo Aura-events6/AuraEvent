@@ -720,7 +720,9 @@ export const BookingFormScreen: React.FC = () => {
               {
                 backgroundColor: isDark
                   ? 'rgba(26, 23, 20, 0.85)'
-                  : 'rgba(255, 255, 255, 0.85)',
+                  : Platform.OS === 'web'
+                  ? 'rgba(255, 255, 255, 0.85)'
+                  : '#FFFFFF',
                 borderColor: isDark
                   ? 'rgba(214, 174, 107, 0.20)'
                   : 'rgba(255, 255, 255, 0.95)',
@@ -751,7 +753,7 @@ export const BookingFormScreen: React.FC = () => {
                     style={[
                       styles.insetGroup,
                       {
-                        backgroundColor: isDark ? 'rgba(22, 20, 18, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                        backgroundColor: isDark ? colors.dark.input : colors.light.input,
                         borderColor: isDark ? 'rgba(214, 174, 107, 0.15)' : 'rgba(198, 151, 73, 0.15)',
                       },
                     ]}
@@ -835,7 +837,7 @@ export const BookingFormScreen: React.FC = () => {
                     style={[
                       styles.insetGroup,
                       {
-                        backgroundColor: isDark ? 'rgba(22, 20, 18, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                        backgroundColor: isDark ? colors.dark.input : colors.light.input,
                         borderColor: isDark ? 'rgba(214, 174, 107, 0.15)' : 'rgba(198, 151, 73, 0.15)',
                       },
                     ]}
@@ -990,7 +992,7 @@ export const BookingFormScreen: React.FC = () => {
                       style={[
                         styles.insetGroup,
                         {
-                          backgroundColor: isDark ? 'rgba(22, 20, 18, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                          backgroundColor: isDark ? colors.dark.input : colors.light.input,
                           borderColor: isDark ? 'rgba(214, 174, 107, 0.15)' : 'rgba(198, 151, 73, 0.15)',
                           marginTop: 8,
                         },
@@ -1039,7 +1041,7 @@ export const BookingFormScreen: React.FC = () => {
                     style={[
                       styles.insetGroup,
                       {
-                        backgroundColor: isDark ? 'rgba(22, 20, 18, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                        backgroundColor: isDark ? colors.dark.input : colors.light.input,
                         borderColor: isDark ? 'rgba(214, 174, 107, 0.15)' : 'rgba(198, 151, 73, 0.15)',
                       },
                     ]}
@@ -1158,7 +1160,7 @@ export const BookingFormScreen: React.FC = () => {
                           styles.simpleInput,
                           styles.advanceExplicitInput,
                           {
-                            backgroundColor: isDark ? 'rgba(22, 20, 18, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                            backgroundColor: isDark ? colors.dark.input : colors.light.input,
                             borderColor: isDark ? 'rgba(214, 174, 107, 0.25)' : 'rgba(198, 151, 73, 0.28)',
                           },
                         ]}
@@ -1279,7 +1281,7 @@ export const BookingFormScreen: React.FC = () => {
                       styles.simpleInput,
                       styles.notesInput,
                       {
-                        backgroundColor: isDark ? 'rgba(22, 20, 18, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                        backgroundColor: isDark ? colors.dark.input : colors.light.input,
                         borderColor: isDark ? 'rgba(214, 174, 107, 0.25)' : 'rgba(198, 151, 73, 0.28)',
                         color: t.text,
                       },

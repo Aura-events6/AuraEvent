@@ -4,7 +4,7 @@
     "slug": "aura-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "platforms": [
       "ios",
       "android",
@@ -15,17 +15,20 @@
       "backgroundColor": "#101012"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "userInterfaceStyle": "light"
     },
     "android": {
       "package": "com.auraevents.mobile",
+      "userInterfaceStyle": "light",
       "adaptiveIcon": {
         "backgroundColor": "#101012"
       },
       "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "./plugins/withDisableForcedDarkMode.js"
     ],
     "extra": {
       "eas": {

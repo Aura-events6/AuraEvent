@@ -432,7 +432,7 @@ export const ExpenseTrackerScreen: React.FC = () => {
             glassStyles.getCardStyle(isDark),
             {
               borderColor: isDark ? 'rgba(214, 174, 107, 0.25)' : 'rgba(198, 151, 73, 0.3)',
-              backgroundColor: isDark ? 'rgba(30, 28, 26, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+              backgroundColor: isDark ? 'rgba(30, 28, 26, 0.85)' : (Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.85)' : '#FFFFFF'),
             },
           ]}
         >
@@ -869,7 +869,7 @@ export const ExpenseTrackerScreen: React.FC = () => {
                   style={[
                     styles.groupedCard,
                     {
-                      backgroundColor: isDark ? 'rgba(30, 28, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                      backgroundColor: isDark ? 'rgba(30, 28, 26, 0.95)' : (Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.95)' : '#FFFFFF'),
                       borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
                     },
                   ]}

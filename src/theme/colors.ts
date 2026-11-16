@@ -3,6 +3,8 @@
  * Derived from UI/UX Pro Max Royal Luxury Glassmorphism
  */
 
+import { Platform } from 'react-native';
+
 export const colors = {
   // Royal Champagne Gold Scale
   gold: {
@@ -30,9 +32,9 @@ export const colors = {
     background: '#FCFBF9',
     backgroundSecondary: '#F5F1EA',
     backgroundTertiary: '#EFECE6',
-    card: 'rgba(255, 255, 255, 0.72)',
-    cardBorder: 'rgba(255, 255, 255, 0.92)',
-    input: 'rgba(255, 255, 255, 0.85)',
+    card: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.72)' : '#FFFFFF',
+    cardBorder: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.95)',
+    input: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.85)' : '#FFFFFF',
     inputBorder: 'rgba(198, 151, 73, 0.28)',
     text: '#1C1917',
     textMuted: 'rgba(28, 25, 23, 0.55)',
