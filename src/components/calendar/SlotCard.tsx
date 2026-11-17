@@ -77,15 +77,15 @@ export const SlotCard: React.FC<SlotCardProps> = ({
               ? 'rgba(28, 26, 24, 0.88)'
               : 'rgba(35, 33, 30, 0.82)'
             : isElapsed
-              ? (Platform.OS === 'web' ? 'rgba(248, 247, 245, 0.95)' : '#F5F5F4')
-              : (Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.72)' : '#FFFFFF'),
+              ? '#F5F5F4'
+              : '#FFFFFF',
           borderColor: isDark
             ? isElapsed
               ? 'rgba(214, 174, 107, 0.22)'
               : 'rgba(255, 255, 255, 0.08)'
             : isElapsed
               ? 'rgba(198, 151, 73, 0.25)'
-              : (Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.92)' : 'rgba(198, 151, 73, 0.22)'),
+              : 'rgba(198, 151, 73, 0.22)',
           transform: [{ scale: pressed ? (isElapsed ? 0.985 : 0.965) : 1 }],
         },
       ]}
@@ -225,8 +225,8 @@ export const SlotCard: React.FC<SlotCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    minHeight: 104,
-    borderRadius: 22,
+    minHeight: 100,
+    borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,

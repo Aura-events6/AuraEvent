@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Clock, ArrowRight } from 'lucide-react-native';
+import { Plus, ArrowRight } from 'lucide-react-native';
 import { BookingSlot } from '../../types/calendar';
 
 interface FreeSlotPlusCardProps {
@@ -67,57 +67,29 @@ export const FreeSlotPlusCard: React.FC<FreeSlotPlusCardProps> = ({
           : `Available ${slotLabels} on ${dateStr}. Tap to place a booking.`
       }
     >
-      {/* Left: Squircle + Text Block */}
-      <View style={styles.leftRow}>
-        <View
+      {/* Left: Text Block (Title & Subtitle with full breathing room) */}
+      <View style={styles.textContainer}>
+        <Text
           style={[
-            styles.goldSquircle,
-            isElapsed
-              ? {
-                  backgroundColor: isDark
-                    ? 'rgba(255, 255, 255, 0.06)'
-                    : 'rgba(0, 0, 0, 0.05)',
-                }
-              : {
-                  backgroundColor: isDark
-                    ? 'rgba(214, 174, 107, 0.15)'
-                    : 'rgba(198, 151, 73, 0.15)',
-                },
+            styles.slotTitle,
+            { color: isElapsed ? elapsedTitleColor : goldPrimary },
           ]}
+          numberOfLines={1}
         >
-          {isElapsed ? (
-            <Clock
-              size={18}
-              color={isDark ? 'rgba(245, 245, 244, 0.45)' : 'rgba(28, 25, 23, 0.45)'}
-              strokeWidth={2}
-            />
-          ) : (
-            <Plus size={18} color={goldPrimary} strokeWidth={2.5} />
-          )}
-        </View>
-
-        <View style={styles.textContainer}>
-          <Text
-            style={[
-              styles.slotTitle,
-              { color: isElapsed ? elapsedTitleColor : goldPrimary },
-            ]}
-            numberOfLines={1}
-          >
-            {isElapsed ? `Elapsed • ${slotLabels}` : `Available • ${slotLabels}`}
-          </Text>
-          <Text
-            style={[
-              styles.slotSubtitle,
-              { color: isElapsed ? elapsedSubColor : subtitleColor },
-            ]}
-          >
-            {isElapsed ? 'Slot has passed • Tap to book upcoming' : 'Tap + to place a booking'}
-          </Text>
-        </View>
+          {isElapsed ? `Elapsed • ${slotLabels}` : `Available • ${slotLabels}`}
+        </Text>
+        <Text
+          style={[
+            styles.slotSubtitle,
+            { color: isElapsed ? elapsedSubColor : subtitleColor },
+          ]}
+          numberOfLines={1}
+        >
+          {isElapsed ? 'Slot has passed • Tap to book upcoming' : 'Tap + to place a booking'}
+        </Text>
       </View>
 
-      {/* Right: Circular Action Button */}
+      {/* Right: Single Circular Action Button */}
       {isElapsed ? (
         <View
           style={[
@@ -152,8 +124,8 @@ export const FreeSlotPlusCard: React.FC<FreeSlotPlusCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    minHeight: 104,
-    borderRadius: 22,
+    minHeight: 84,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     paddingHorizontal: 16,
@@ -163,21 +135,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
     marginBottom: 8,
-  },
-  leftRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minWidth: 0,
-  },
-  goldSquircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
   },
   textContainer: {
     flex: 1,

@@ -95,9 +95,7 @@ export const DateRowItem: React.FC<DateRowItemProps> = ({
               {
                 backgroundColor: isDark
                   ? 'rgba(35, 33, 30, 0.82)'
-                  : Platform.OS === 'web'
-                    ? 'rgba(255, 255, 255, 0.72)'
-                    : '#FFFFFF',
+                  : '#FFFFFF',
                 borderColor: isDark
                   ? 'rgba(255, 255, 255, 0.08)'
                   : 'rgba(198, 151, 73, 0.22)',
@@ -227,12 +225,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   dateColWrapper: {
-    width: 78,
+    width: 68,
     marginBottom: 8,
   },
   todayDateBadge: {
     flex: 1,
-    borderRadius: 22,
+    borderRadius: 20,
     paddingVertical: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
@@ -270,7 +268,7 @@ const styles = StyleSheet.create({
   },
   normalDateBadge: {
     flex: 1,
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 6,

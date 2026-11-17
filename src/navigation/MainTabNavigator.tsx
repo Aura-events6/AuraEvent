@@ -74,11 +74,11 @@ const GlidingTabBar: React.FC<BottomTabBarProps & { isDark: boolean }> = ({
           styles.floatingNavContainer,
           {
             backgroundColor: isDark
-              ? 'rgba(20, 20, 23, 0.90)'
-              : 'rgba(255, 255, 255, 0.88)',
+              ? '#141417'
+              : '#FFFFFF',
             borderColor: isDark
               ? 'rgba(214, 174, 107, 0.22)'
-              : 'rgba(255, 255, 255, 0.95)',
+              : 'rgba(198, 151, 73, 0.20)',
           },
         ]}
       >

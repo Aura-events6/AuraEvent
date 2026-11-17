@@ -43,6 +43,7 @@ import { useRealtimeCalendar } from '../hooks/useRealtimeCalendar';
 import { useNavigation } from '@react-navigation/native';
 import { fetchWeeklyCalendar } from '../services/calendarService';
 import { ScreenBackground } from '../components/common';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   SummaryRevenueHeader,
   WeekSelector,
@@ -53,6 +54,7 @@ import { Alert } from 'react-native';
 
 export const CalendarScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user, theme, hall, logout } = useAuth();
   const isDark = theme === 'dark';
   const t = isDark ? colors.dark : colors.light;
@@ -313,7 +315,10 @@ export const CalendarScreen: React.FC = () => {
       <Animated.ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingHorizontal: isMobile ? 16 : 24 },
+          {
+            paddingHorizontal: isMobile ? 16 : 24,
+            paddingBottom: 100 + Math.max(insets.bottom, 16) + 36,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
