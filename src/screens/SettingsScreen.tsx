@@ -103,6 +103,7 @@ export const SettingsScreen: React.FC = () => {
   // Edit Modals
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isTimingsModalOpen, setIsTimingsModalOpen] = useState(false);
+  const [isEventTypesModalOpen, setIsEventTypesModalOpen] = useState(false);
 
   // Slot Mode Warning Modal State
   const [isSlotWarningModalOpen, setIsSlotWarningModalOpen] = useState(false);
@@ -115,6 +116,7 @@ export const SettingsScreen: React.FC = () => {
   // Wire all Settings modals to Central BackDispatcher (Rule 1)
   useBackOverlay(isProfileModalOpen, () => setIsProfileModalOpen(false));
   useBackOverlay(isTimingsModalOpen, () => setIsTimingsModalOpen(false));
+  useBackOverlay(isEventTypesModalOpen, () => setIsEventTypesModalOpen(false));
   useBackOverlay(isSlotWarningModalOpen, () => {
     setIsSlotWarningModalOpen(false);
     setPendingSlotMode(null);
@@ -129,6 +131,8 @@ export const SettingsScreen: React.FC = () => {
 
   const timingsAnim = useRef(new Animated.Value(0)).current;
   const [timingsSaveState, setTimingsSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  const eventTypesAnim = useRef(new Animated.Value(0)).current;
 
   const warningAnim = useRef(new Animated.Value(0)).current;
   const warningBadgeAnim = useRef(new Animated.Value(0)).current;
@@ -160,6 +164,18 @@ export const SettingsScreen: React.FC = () => {
       }).start();
     }
   }, [isTimingsModalOpen]);
+
+  useEffect(() => {
+    if (isEventTypesModalOpen) {
+      eventTypesAnim.setValue(0);
+      Animated.spring(eventTypesAnim, {
+        toValue: 1,
+        tension: motionTokens.springSheet.tension,
+        friction: motionTokens.springSheet.friction,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isEventTypesModalOpen]);
 
   useEffect(() => {
     if (isSlotWarningModalOpen) {
@@ -545,28 +561,18 @@ export const SettingsScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* HEADER: Clean Top Bar */}
+      {/* 1. MINIMAL TITLE BAR */}
       <View
         style={[
           styles.headerWrapper,
           {
-            paddingTop: Platform.OS === 'android' ? 26 : 10,
+            paddingTop: Platform.OS === 'android' ? 24 : 12,
             paddingHorizontal: isMobile ? 16 : 24,
           },
         ]}
       >
-        <View style={[styles.headerContainer, glassStyles.getCardStyle(isDark)]}>
-          <View style={styles.brandRow}>
-            <LinearGradient colors={colors.goldGradient} style={styles.headerEmblem}>
-              <Crown size={20} color="#FFFFFF" />
-            </LinearGradient>
-            <View>
-              <Text style={[styles.headerTitle, { color: t.text }]}>Settings</Text>
-              <Text style={[styles.headerSubtitle, { color: t.textMuted }]}>
-                {settings.name || 'Function Hall Configuration'}
-              </Text>
-            </View>
-          </View>
+        <View style={styles.headerRow}>
+          <Text style={[styles.headerTitle, { color: t.text }]}>Settings</Text>
           {isSaving && (
             <ActivityIndicator
               size="small"
@@ -579,7 +585,10 @@ export const SettingsScreen: React.FC = () => {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingHorizontal: isMobile ? 16 : 24 },
+          {
+            paddingHorizontal: isMobile ? 16 : 24,
+            paddingBottom: 120,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -590,757 +599,899 @@ export const SettingsScreen: React.FC = () => {
           />
         }
       >
-        {/* PROFILE / ACCOUNT CARD */}
-        <View style={[styles.profileCard, glassStyles.getCardStyle(isDark)]}>
-          <LinearGradient colors={colors.goldGradient} style={styles.profileAvatar}>
-            <Text style={styles.profileInitials}>{initials}</Text>
-          </LinearGradient>
-          <View style={{ flex: 1 }}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.profileName, { color: t.text }]}>
-                {user?.name || 'Hall Administrator'}
-              </Text>
-              <RoleBadge role={user?.role || 'staff'} />
-            </View>
-            <Text style={[styles.profileHall, { color: t.textMuted }]}>
-              {settings.name}
-            </Text>
-            <Text style={[styles.profilePhone, { color: t.textSubtle }]}>
-              {settings.phone}
-            </Text>
-          </View>
-          {isOwner && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.editBtn,
-                { transform: [{ scale: pressed ? 0.92 : 1 }] },
-              ]}
-              accessibilityLabel="Edit hall profile"
-              onPress={openProfileModal}
+        {/* 1. OWNER PROFILE CARD */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.profileCard,
+            {
+              backgroundColor: isDark ? colors.dark.card : colors.light.card,
+              borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            },
+          ]}
+          onPress={isOwner ? openProfileModal : undefined}
+          accessibilityRole="button"
+          accessibilityLabel="Edit Owner Profile"
+        >
+          <View style={styles.profileLeft}>
+            <LinearGradient
+              colors={colors.goldGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileAvatarSquircle}
             >
-              <Edit3 size={16} color={isDark ? colors.gold[400] : colors.gold[600]} />
-            </Pressable>
-          )}
-        </View>
-
-        {/* TEAM & STAFF ACCOUNTS (OWNER ONLY) */}
-        {isOwner && (
-          <>
-            <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>
-              Team & Staff Management
-            </Text>
-            <TactileRow
-              style={[styles.teamCard, glassStyles.getCardStyle(isDark)]}
-              onPress={() => navigation.navigate('Users')}
-              accessibilityRole="button"
-              accessibilityLabel="Manage Team & Staff"
-            >
-              {({ chevronX }: { chevronX: Animated.Value }) => (
-                <>
-                  <View style={styles.teamCardLeft}>
-                    <View
-                      style={[
-                        styles.menuIconBox,
-                        { backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg },
-                      ]}
-                    >
-                      <Users size={18} color={isDark ? colors.gold[400] : colors.gold[600]} />
-                    </View>
-                    <View style={styles.teamCardTexts}>
-                      <View style={styles.teamTitleRow}>
-                        <Text style={[styles.rowTitle, { color: t.text }]}>
-                          Team Accounts & Access
-                        </Text>
-                        <View
-                          style={[
-                            styles.teamPill,
-                            {
-                              backgroundColor: isDark
-                                ? 'rgba(214, 174, 107, 0.15)'
-                                : 'rgba(198, 151, 73, 0.18)',
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.teamPillText,
-                              { color: isDark ? colors.gold[400] : colors.gold[600] },
-                            ]}
-                          >
-                            5-Member Limit
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                        Invite staff, configure screen permissions, & reset credentials
-                      </Text>
-                    </View>
-                  </View>
-                  <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                    <ChevronRight size={18} color={t.textSubtle} />
-                  </Animated.View>
-                </>
-              )}
-            </TactileRow>
-          </>
-        )}
-
-        {/* FINANCIAL ANALYTICS & REPORTS (OWNER & AUTHORIZED MANAGERS) */}
-        {hasAnalyticsAccess && (
-          <>
-            <Text style={[styles.sectionEyebrow, { color: t.textSubtle, marginTop: isOwner ? 16 : 0 }]}>
-              Business Analytics & Intelligence
-            </Text>
-            <TactileRow
-              style={[styles.teamCard, glassStyles.getCardStyle(isDark)]}
-              onPress={() => navigation.navigate('Analytics')}
-              accessibilityRole="button"
-              accessibilityLabel="View Executive Analytics"
-            >
-              {({ chevronX }: { chevronX: Animated.Value }) => (
-                <>
-                  <View style={styles.teamCardLeft}>
-                    <View
-                      style={[
-                        styles.menuIconBox,
-                        { backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg },
-                      ]}
-                    >
-                      <BarChart3 size={18} color={isDark ? colors.gold[400] : colors.gold[600]} />
-                    </View>
-                    <View style={styles.teamCardTexts}>
-                      <View style={styles.teamTitleRow}>
-                        <Text style={[styles.rowTitle, { color: t.text }]}>
-                          Financial Analytics & Reports
-                        </Text>
-                        <View
-                          style={[
-                            styles.teamPill,
-                            {
-                              backgroundColor: isDark
-                                ? 'rgba(214, 174, 107, 0.15)'
-                                : 'rgba(198, 151, 73, 0.18)',
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.teamPillText,
-                              { color: isDark ? colors.gold[400] : colors.gold[600] },
-                            ]}
-                          >
-                            Executive
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                        Revenue metrics, net collection rates, top packages & dues summary
-                      </Text>
-                    </View>
-                  </View>
-                  <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                    <ChevronRight size={18} color={t.textSubtle} />
-                  </Animated.View>
-                </>
-              )}
-            </TactileRow>
-          </>
-        )}
-
-        {/* OPERATIONAL EXPENSE TRACKER */}
-        {isOwner && (
-          <TactileRow
-            style={[styles.teamCard, glassStyles.getCardStyle(isDark), { marginTop: 10 }]}
-            onPress={() => navigation.navigate('ExpenseTracker')}
-            accessibilityRole="button"
-            accessibilityLabel="View Operational Expense Tracker"
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={styles.teamCardLeft}>
-                  <View
+              <Text style={styles.profileAvatarInitial}>{initials}</Text>
+            </LinearGradient>
+            <View style={styles.profileTextCol}>
+              <View style={styles.profileNameRow}>
+                <Text numberOfLines={1} style={[styles.profileName, { color: t.text }]}>
+                  {user?.name || 'Administrator'}
+                </Text>
+                <View
+                  style={[
+                    styles.rolePill,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(214, 174, 107, 0.16)'
+                        : 'rgba(198, 151, 73, 0.14)',
+                    },
+                  ]}
+                >
+                  <Text
                     style={[
-                      styles.menuIconBox,
-                      { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(220, 38, 38, 0.1)' },
+                      styles.rolePillText,
+                      { color: isDark ? colors.gold[400] : colors.gold[700] },
                     ]}
                   >
-                    <Receipt size={18} color={isDark ? '#F87171' : '#DC2626'} />
+                    {user?.role ? user.role.toUpperCase() : 'OWNER'}
+                  </Text>
+                </View>
+              </View>
+              <Text numberOfLines={1} style={[styles.profileSubtext, { color: t.textMuted }]}>
+                {settings.name} · {settings.phone}
+              </Text>
+            </View>
+          </View>
+          {isOwner && (
+            <ChevronRight
+              size={16}
+              color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+            />
+          )}
+        </Pressable>
+
+        {/* 2. WORKSPACE */}
+        {(isOwner || hasAnalyticsAccess) && (
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Workspace</Text>
+            <View
+              style={[
+                styles.groupedCard,
+                {
+                  backgroundColor: isDark ? colors.dark.card : colors.light.card,
+                  borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
+                },
+              ]}
+            >
+              {isOwner && (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.iosRow,
+                    {
+                      backgroundColor: pressed
+                        ? isDark
+                          ? 'rgba(214, 174, 107, 0.08)'
+                          : 'rgba(198, 151, 73, 0.06)'
+                        : 'transparent',
+                    },
+                  ]}
+                  onPress={() => navigation.navigate('Users')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Team & Access"
+                >
+                  <View style={styles.rowLeft}>
+                    <View
+                      style={[
+                        styles.settingIconBox,
+                        {
+                          backgroundColor: isDark
+                            ? 'rgba(214, 174, 107, 0.16)'
+                            : 'rgba(198, 151, 73, 0.14)',
+                        },
+                      ]}
+                    >
+                      <Users size={16} color={isDark ? colors.gold[400] : colors.gold[700]} />
+                    </View>
+                    <Text style={[styles.rowTitle, { color: t.text }]}>Team & Access</Text>
                   </View>
-                  <View style={styles.teamCardTexts}>
-                    <View style={styles.teamTitleRow}>
-                      <Text style={[styles.rowTitle, { color: t.text }]}>
-                        Operational Expense Tracker
-                      </Text>
+                  <View style={styles.rowRight}>
+                    <Text style={[styles.rowRightBadge, { color: t.textMuted }]}>5 max</Text>
+                    <ChevronRight
+                      size={14}
+                      color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                    />
+                  </View>
+                </Pressable>
+              )}
+
+              {isOwner && hasAnalyticsAccess && (
+                <View
+                  style={[
+                    styles.rowDivider,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(255, 255, 255, 0.06)'
+                        : 'rgba(198, 151, 73, 0.12)',
+                    },
+                  ]}
+                />
+              )}
+
+              {hasAnalyticsAccess && (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.iosRow,
+                    {
+                      backgroundColor: pressed
+                        ? isDark
+                          ? 'rgba(214, 174, 107, 0.08)'
+                          : 'rgba(198, 151, 73, 0.06)'
+                        : 'transparent',
+                    },
+                  ]}
+                  onPress={() => navigation.navigate('Analytics')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Analytics & Reports"
+                >
+                  <View style={styles.rowLeft}>
+                    <View
+                      style={[
+                        styles.settingIconBox,
+                        {
+                          backgroundColor: isDark
+                            ? 'rgba(214, 174, 107, 0.16)'
+                            : 'rgba(198, 151, 73, 0.14)',
+                        },
+                      ]}
+                    >
+                      <BarChart3 size={16} color={isDark ? colors.gold[400] : colors.gold[700]} />
+                    </View>
+                    <Text style={[styles.rowTitle, { color: t.text }]}>Analytics & Reports</Text>
+                  </View>
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
+                </Pressable>
+              )}
+
+              {isOwner && (
+                <>
+                  <View
+                    style={[
+                      styles.rowDivider,
+                      {
+                        backgroundColor: isDark
+                          ? 'rgba(255, 255, 255, 0.06)'
+                          : 'rgba(198, 151, 73, 0.12)',
+                      },
+                    ]}
+                  />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.iosRow,
+                      {
+                        backgroundColor: pressed
+                          ? isDark
+                            ? 'rgba(214, 174, 107, 0.08)'
+                            : 'rgba(198, 151, 73, 0.06)'
+                          : 'transparent',
+                      },
+                    ]}
+                    onPress={() => navigation.navigate('ExpenseTracker')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Expense Ledger"
+                  >
+                    <View style={styles.rowLeft}>
                       <View
                         style={[
-                          styles.teamPill,
+                          styles.settingIconBox,
                           {
                             backgroundColor: isDark
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : 'rgba(220, 38, 38, 0.12)',
+                              ? 'rgba(214, 174, 107, 0.16)'
+                              : 'rgba(198, 151, 73, 0.14)',
                           },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.teamPillText,
-                            { color: isDark ? '#F87171' : '#DC2626' },
-                          ]}
-                        >
-                          Ledger
-                        </Text>
+                        <Receipt size={16} color={isDark ? colors.gold[400] : colors.gold[700]} />
                       </View>
+                      <Text style={[styles.rowTitle, { color: t.text }]}>Expense Ledger</Text>
                     </View>
-                    <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                      Track operational outlays, fuel, staff wages & vendor dues
-                    </Text>
-                  </View>
-                </View>
-                <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                  <ChevronRight size={18} color={t.textSubtle} />
-                </Animated.View>
-              </>
-            )}
-          </TactileRow>
+                    <ChevronRight
+                      size={14}
+                      color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                    />
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
         )}
 
-        {/* APPEARANCE / THEME SECTION */}
-        <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Appearance</Text>
-        <View style={[styles.groupedList, glassStyles.getCardStyle(isDark)]}>
-          <View style={styles.switchRow}>
-            <View style={styles.rowWithIcon}>
-              <View
-                style={[
-                  styles.menuIconBox,
-                  { backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg },
-                ]}
-              >
-                {isDark ? (
-                  <Moon size={16} color={colors.gold[400]} />
-                ) : (
-                  <Sun size={16} color={colors.gold[600]} />
+        {/* 3. HALL PROFILE */}
+        <View style={styles.sectionWrap}>
+          <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Hall Profile</Text>
+          <View
+            style={[
+              styles.groupedCard,
+              {
+                backgroundColor: isDark ? colors.dark.card : colors.light.card,
+                borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
+              },
+            ]}
+          >
+            {/* Hall Name */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed && isOwner
+                    ? isDark
+                      ? 'rgba(214, 174, 107, 0.08)'
+                      : 'rgba(198, 151, 73, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={isOwner ? openProfileModal : undefined}
+              disabled={!isOwner}
+              accessibilityRole="button"
+              accessibilityLabel="Hall Name"
+            >
+              <Text style={[styles.rowTitle, { color: t.text }]}>Hall Name</Text>
+              <View style={styles.rowRight}>
+                <Text numberOfLines={1} style={[styles.rowValueText, { color: t.textMuted }]}>
+                  {settings.name}
+                </Text>
+                {isOwner && (
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
                 )}
               </View>
-              <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={[styles.rowTitle, { color: t.text }]}>Dark Mode</Text>
-                <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                  {isDark ? 'Obsidian charcoal luxury glass' : 'Bright royal pearl luxury theme'}
+            </Pressable>
+
+            <View
+              style={[
+                styles.rowDivider,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(255, 255, 255, 0.06)'
+                    : 'rgba(198, 151, 73, 0.12)',
+                },
+              ]}
+            />
+
+            {/* Primary Phone */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed && isOwner
+                    ? isDark
+                      ? 'rgba(214, 174, 107, 0.08)'
+                      : 'rgba(198, 151, 73, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={isOwner ? openProfileModal : undefined}
+              disabled={!isOwner}
+              accessibilityRole="button"
+              accessibilityLabel="Primary Phone"
+            >
+              <Text style={[styles.rowTitle, { color: t.text }]}>Primary Phone</Text>
+              <View style={styles.rowRight}>
+                <Text numberOfLines={1} style={[styles.rowValueText, { color: t.textMuted }]}>
+                  {settings.phone}
                 </Text>
+                {isOwner && (
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
+                )}
               </View>
-            </View>
-            <GoldSwitch value={isDark} onValueChange={toggleTheme} />
+            </Pressable>
+
+            <View
+              style={[
+                styles.rowDivider,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(255, 255, 255, 0.06)'
+                    : 'rgba(198, 151, 73, 0.12)',
+                },
+              ]}
+            />
+
+            {/* GST Number */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed && isOwner
+                    ? isDark
+                      ? 'rgba(214, 174, 107, 0.08)'
+                      : 'rgba(198, 151, 73, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={isOwner ? openProfileModal : undefined}
+              disabled={!isOwner}
+              accessibilityRole="button"
+              accessibilityLabel="GST Number"
+            >
+              <Text style={[styles.rowTitle, { color: t.text }]}>GST Number</Text>
+              <View style={styles.rowRight}>
+                <Text numberOfLines={1} style={[styles.rowValueText, { color: t.textMuted }]}>
+                  {settings.gstNumber || 'None'}
+                </Text>
+                {isOwner && (
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
+                )}
+              </View>
+            </Pressable>
+
+            <View
+              style={[
+                styles.rowDivider,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(255, 255, 255, 0.06)'
+                    : 'rgba(198, 151, 73, 0.12)',
+                },
+              ]}
+            />
+
+            {/* Invoice Prefix */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed && isOwner
+                    ? isDark
+                      ? 'rgba(214, 174, 107, 0.08)'
+                      : 'rgba(198, 151, 73, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={isOwner ? openProfileModal : undefined}
+              disabled={!isOwner}
+              accessibilityRole="button"
+              accessibilityLabel="Invoice Prefix"
+            >
+              <Text style={[styles.rowTitle, { color: t.text }]}>Invoice Prefix</Text>
+              <View style={styles.rowRight}>
+                <Text numberOfLines={1} style={[styles.rowValueText, { color: t.textMuted }]}>
+                  {settings.billPrefix}
+                </Text>
+                {isOwner && (
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
+                )}
+              </View>
+            </Pressable>
           </View>
         </View>
 
-        {/* HALL DETAILS SECTION */}
-        <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Hall Details</Text>
-        <View style={[styles.groupedList, glassStyles.getCardStyle(isDark)]}>
-          <TactileRow
-            style={[
-              styles.listRow,
-              { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-            ]}
-            onPress={isOwner ? openProfileModal : undefined}
-            disabled={!isOwner}
-            accessibilityLabel={isOwner ? "Edit Hall Name" : "Hall Name"}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={{ flex: 1, marginRight: isOwner ? 8 : 0 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Hall Name</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    {settings.name}
-                  </Text>
-                </View>
-                {isOwner && (
-                  <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                    <ChevronRight size={16} color={t.textSubtle} />
-                  </Animated.View>
-                )}
-              </>
-            )}
-          </TactileRow>
-
-          <TactileRow
-            style={[
-              styles.listRow,
-              { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-            ]}
-            onPress={isOwner ? openProfileModal : undefined}
-            disabled={!isOwner}
-            accessibilityLabel={isOwner ? "Edit Primary Phone" : "Primary Phone"}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={{ flex: 1, marginRight: isOwner ? 8 : 0 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Primary Phone</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    {settings.phone}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.fieldNote,
-                      { color: isDark ? colors.gold[400] : colors.gold[600] },
-                    ]}
-                  >
-                    Staff members use this phone number on their login screen.
-                  </Text>
-                </View>
-                {isOwner && (
-                  <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                    <ChevronRight size={16} color={t.textSubtle} />
-                  </Animated.View>
-                )}
-              </>
-            )}
-          </TactileRow>
-
-          <TactileRow
-            style={[
-              styles.listRow,
-              { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-            ]}
-            onPress={isOwner ? openProfileModal : undefined}
-            disabled={!isOwner}
-            accessibilityLabel={isOwner ? "Edit GST Number" : "GST Number"}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={{ flex: 1, marginRight: isOwner ? 8 : 0 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>GST Number</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    {settings.gstNumber || 'Not specified'}
-                  </Text>
-                </View>
-                {isOwner && (
-                  <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                    <ChevronRight size={16} color={t.textSubtle} />
-                  </Animated.View>
-                )}
-              </>
-            )}
-          </TactileRow>
-
-          <TactileRow
-            style={styles.listRow}
-            onPress={isOwner ? openProfileModal : undefined}
-            disabled={!isOwner}
-            accessibilityLabel={isOwner ? "Edit Invoice Bill Prefix" : "Invoice Bill Prefix"}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={{ flex: 1, marginRight: isOwner ? 8 : 0 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Invoice Bill Prefix</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    {settings.billPrefix} (e.g. {settings.billPrefix}0042)
-                  </Text>
-                </View>
-                {isOwner && (
-                  <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                    <ChevronRight size={16} color={t.textSubtle} />
-                  </Animated.View>
-                )}
-              </>
-            )}
-          </TactileRow>
-        </View>
-
-        {/* OPERATING SLOTS & TIMINGS (OWNER ONLY) */}
+        {/* 4. BOOKINGS & SLOTS (OWNER ONLY) */}
         {isOwner && (
-          <>
-            <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>
-              Operating Slots & Timings
-            </Text>
-            <View style={[styles.groupedList, glassStyles.getCardStyle(isDark)]}>
-              <View
-                style={[
-                  styles.switchRow,
-                  { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-                ]}
-              >
-                <TouchableOpacity
-                  style={{ flex: 1, marginRight: 12 }}
-                  onPress={() => handleToggleTwoSlot(settings.slotMode !== 'two_slots')}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Slot mode is currently ${settings.slotMode === 'two_slots' ? 'Two-Slot System' : 'Full-Day System'}. Tap to change.`}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    <Text style={[styles.rowTitle, { color: t.text }]}>
-                      {settings.slotMode === 'two_slots' ? 'Two-Slot System' : 'Full-Day System'}
-                    </Text>
-                    <View
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 6,
-                        backgroundColor: isDark ? 'rgba(229,184,66,0.15)' : 'rgba(198,151,73,0.15)',
-                        borderWidth: 1,
-                        borderColor: isDark ? 'rgba(229,184,66,0.3)' : 'rgba(198,151,73,0.3)',
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 10,
-                          fontWeight: '700',
-                          color: isDark ? colors.gold[400] : colors.gold[600],
-                        }}
-                      >
-                        {settings.slotMode === 'two_slots' ? '2 Slots Active' : 'Full Day Active'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    {settings.slotMode === 'two_slots'
-                      ? 'Morning and evening sessions booked independently'
-                      : 'Entire day booked as a single 24-hour event'}
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      marginTop: 4,
-                      fontWeight: '500',
-                      color: isDark ? 'rgba(251, 191, 36, 0.9)' : '#B45309',
-                    }}
-                  >
-                    ⚠️ Changing mode prompts a confirmation warning
-                  </Text>
-                </TouchableOpacity>
+          <View style={styles.sectionWrap}>
+            <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Bookings & Slots</Text>
+            <View
+              style={[
+                styles.groupedCard,
+                {
+                  backgroundColor: isDark ? colors.dark.card : colors.light.card,
+                  borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
+                },
+              ]}
+            >
+              {/* Full-Day Mode Switch */}
+              <View style={styles.iosRow}>
+                <Text style={[styles.rowTitle, { color: t.text }]}>Full-Day Mode</Text>
                 <GoldSwitch
-                  value={settings.slotMode === 'two_slots'}
-                  onValueChange={handleToggleTwoSlot}
+                  value={settings.slotMode === 'full_day'}
+                  onValueChange={(val) => handleToggleTwoSlot(!val)}
                 />
               </View>
 
               <View
                 style={[
-                  styles.switchRow,
-                  { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
+                  styles.rowDivider,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(198, 151, 73, 0.12)',
+                  },
                 ]}
-              >
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Multi-Day Booking</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    Allow reservations spanning multiple days
-                  </Text>
-                </View>
+              />
+
+              {/* Multi-Day Booking Switch */}
+              <View style={styles.iosRow}>
+                <Text style={[styles.rowTitle, { color: t.text }]}>Multi-Day Booking</Text>
                 <GoldSwitch
                   value={settings.multiDayEnabled}
                   onValueChange={handleToggleMultiDay}
                 />
               </View>
 
-              <TactileRow
-                style={styles.listRow}
+              <View
+                style={[
+                  styles.rowDivider,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(198, 151, 73, 0.12)',
+                  },
+                ]}
+              />
+
+              {/* Slot Timings */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.iosRow,
+                  {
+                    backgroundColor: pressed
+                      ? isDark
+                        ? 'rgba(214, 174, 107, 0.08)'
+                        : 'rgba(198, 151, 73, 0.06)'
+                      : 'transparent',
+                  },
+                ]}
                 onPress={openTimingsModal}
-                accessibilityLabel="Edit Slot Operating Timings"
+                accessibilityRole="button"
+                accessibilityLabel="Slot Timings"
               >
-                {({ chevronX }: { chevronX: Animated.Value }) => (
-                  <>
-                    <View style={{ flex: 1, marginRight: 10 }}>
-                      <Text style={[styles.rowTitle, { color: t.text }]}>Slot Operating Timings</Text>
-                      <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                        Morning ({settings.morningStart.slice(0, 5)} - {settings.morningEnd.slice(0, 5)}) • Evening ({settings.eveningStart.slice(0, 5)} - {settings.eveningEnd.slice(0, 5)})
-                      </Text>
-                    </View>
-                    <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                      <ChevronRight size={16} color={t.textSubtle} />
-                    </Animated.View>
-                  </>
-                )}
-              </TactileRow>
+                <Text style={[styles.rowTitle, { color: t.text }]}>Slot Timings</Text>
+                <View style={styles.rowRight}>
+                  <Text numberOfLines={1} style={[styles.rowValueText, { color: t.textMuted }]}>
+                    {settings.morningStart.slice(0, 5)}–{settings.morningEnd.slice(0, 5)} · {settings.eveningStart.slice(0, 5)}–{settings.eveningEnd.slice(0, 5)}
+                  </Text>
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
+                </View>
+              </Pressable>
+
+              <View
+                style={[
+                  styles.rowDivider,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255, 255, 255, 0.06)'
+                      : 'rgba(198, 151, 73, 0.12)',
+                  },
+                ]}
+              />
+
+              {/* Event Types */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.iosRow,
+                  {
+                    backgroundColor: pressed
+                      ? isDark
+                        ? 'rgba(214, 174, 107, 0.08)'
+                        : 'rgba(198, 151, 73, 0.06)'
+                      : 'transparent',
+                  },
+                ]}
+                onPress={() => setIsEventTypesModalOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Event Types"
+              >
+                <Text style={[styles.rowTitle, { color: t.text }]}>Event Types</Text>
+                <View style={styles.rowRight}>
+                  <Text numberOfLines={1} style={[styles.rowValueText, { color: t.textMuted }]}>
+                    {eventTypes.slice(0, 2).join(', ')}{eventTypes.length > 2 ? ` +${eventTypes.length - 2}` : ''}
+                  </Text>
+                  <ChevronRight
+                    size={14}
+                    color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                  />
+                </View>
+              </Pressable>
             </View>
-          </>
+          </View>
         )}
 
-        {/* EVENT TYPES (OWNER ONLY) */}
-        {isOwner && (
-          <>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>
-                Event Types ({eventTypes.length}/7)
+        {/* 5. PREFERENCES & ALERTS */}
+        <View style={styles.sectionWrap}>
+          <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Preferences & Alerts</Text>
+          <View
+            style={[
+              styles.groupedCard,
+              {
+                backgroundColor: isDark ? colors.dark.card : colors.light.card,
+                borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
+              },
+            ]}
+          >
+            {/* Dark Mode Switch */}
+            <View style={styles.iosRow}>
+              <View style={styles.rowLeft}>
+                <View
+                  style={[
+                    styles.settingIconBox,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(214, 174, 107, 0.16)'
+                        : 'rgba(198, 151, 73, 0.14)',
+                    },
+                  ]}
+                >
+                  {isDark ? (
+                    <Moon size={16} color={colors.gold[400]} />
+                  ) : (
+                    <Sun size={16} color={colors.gold[600]} />
+                  )}
+                </View>
+                <Text style={[styles.rowTitle, { color: t.text }]}>Dark Mode</Text>
+              </View>
+              <GoldSwitch value={isDark} onValueChange={toggleTheme} />
+            </View>
+
+            {isOwner && (
+              <>
+                <View
+                  style={[
+                    styles.rowDivider,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(255, 255, 255, 0.06)'
+                        : 'rgba(198, 151, 73, 0.12)',
+                    },
+                  ]}
+                />
+
+                {/* Price Change Alerts */}
+                <View style={styles.iosRow}>
+                  <Text style={[styles.rowTitle, { color: t.text }]}>Price Change Alerts</Text>
+                  <GoldSwitch
+                    value={settings.notificationSettings.notify_owner_on_price_edit}
+                    onValueChange={(val) =>
+                      handleToggleNotification('notify_owner_on_price_edit', val)
+                    }
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.rowDivider,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(255, 255, 255, 0.06)'
+                        : 'rgba(198, 151, 73, 0.12)',
+                    },
+                  ]}
+                />
+
+                {/* Cancellation Alerts */}
+                <View style={styles.iosRow}>
+                  <Text style={[styles.rowTitle, { color: t.text }]}>Cancellation Alerts</Text>
+                  <GoldSwitch
+                    value={settings.notificationSettings.notify_owner_on_cancel}
+                    onValueChange={(val) =>
+                      handleToggleNotification('notify_owner_on_cancel', val)
+                    }
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.rowDivider,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(255, 255, 255, 0.06)'
+                        : 'rgba(198, 151, 73, 0.12)',
+                    },
+                  ]}
+                />
+
+                {/* Payment Reversal Alerts */}
+                <View style={styles.iosRow}>
+                  <Text style={[styles.rowTitle, { color: t.text }]}>Payment Reversal Alerts</Text>
+                  <GoldSwitch
+                    value={settings.notificationSettings.notify_owner_on_reversal}
+                    onValueChange={(val) =>
+                      handleToggleNotification('notify_owner_on_reversal', val)
+                    }
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* 6. SECURITY */}
+        <View style={styles.sectionWrap}>
+          <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>Security</Text>
+          <View
+            style={[
+              styles.groupedCard,
+              {
+                backgroundColor: isDark ? colors.dark.card : colors.light.card,
+                borderColor: isDark ? 'rgba(214, 174, 107, 0.16)' : 'rgba(198, 151, 73, 0.16)',
+              },
+            ]}
+          >
+            {/* App Lock PIN */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed
+                    ? isDark
+                      ? 'rgba(214, 174, 107, 0.08)'
+                      : 'rgba(198, 151, 73, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={lockApp}
+              accessibilityRole="button"
+              accessibilityLabel="App Lock (PIN)"
+            >
+              <View style={styles.rowLeft}>
+                <View
+                  style={[
+                    styles.settingIconBox,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(214, 174, 107, 0.16)'
+                        : 'rgba(198, 151, 73, 0.14)',
+                    },
+                  ]}
+                >
+                  <ShieldCheck size={16} color={isDark ? colors.gold[400] : colors.gold[700]} />
+                </View>
+                <Text style={[styles.rowTitle, { color: t.text }]}>App Lock (PIN)</Text>
+              </View>
+              <View style={styles.rowRight}>
+                <Text style={[styles.rowRightBadge, { color: t.textMuted }]}>Active</Text>
+                <ChevronRight
+                  size={14}
+                  color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+                />
+              </View>
+            </Pressable>
+
+            <View
+              style={[
+                styles.rowDivider,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(255, 255, 255, 0.06)'
+                    : 'rgba(198, 151, 73, 0.12)',
+                },
+              ]}
+            />
+
+            {/* Exit App */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed
+                    ? isDark
+                      ? 'rgba(214, 174, 107, 0.08)'
+                      : 'rgba(198, 151, 73, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={() => setShowExitModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Exit App"
+            >
+              <Text style={[styles.rowTitle, { color: t.text }]}>Exit App</Text>
+              <ChevronRight
+                size={14}
+                color={isDark ? 'rgba(245, 245, 244, 0.35)' : 'rgba(28, 25, 23, 0.35)'}
+              />
+            </Pressable>
+
+            <View
+              style={[
+                styles.rowDivider,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(255, 255, 255, 0.06)'
+                    : 'rgba(198, 151, 73, 0.12)',
+                },
+              ]}
+            />
+
+            {/* Sign Out */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.iosRow,
+                {
+                  backgroundColor: pressed
+                    ? isDark
+                      ? 'rgba(239, 68, 68, 0.08)'
+                      : 'rgba(220, 38, 38, 0.06)'
+                    : 'transparent',
+                },
+              ]}
+              onPress={() => setShowLogoutModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Sign Out"
+            >
+              <Text
+                style={[
+                  styles.rowTitle,
+                  {
+                    color: isDark ? colors.status.danger.dark : colors.status.danger.light,
+                    fontWeight: '600',
+                  },
+                ]}
+              >
+                Sign Out
               </Text>
-              {eventTypes.length < 5 && (
+              <LogOut
+                size={16}
+                color={isDark ? colors.status.danger.dark : colors.status.danger.light}
+              />
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* MODAL: EVENT TYPES (Progressive Disclosure Sheet) */}
+      <Modal
+        visible={isEventTypesModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEventTypesModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsEventTypesModalOpen(false)}
+          />
+          <Animated.View
+            style={[
+              styles.eventTypesModalCard,
+              {
+                backgroundColor: isDark ? '#18171B' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(198, 151, 73, 0.25)',
+                transform: [
+                  {
+                    translateY: eventTypesAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [28, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            {/* Sheet Header */}
+            <View style={styles.sheetHeaderRow}>
+              {eventTypes.length < 5 ? (
                 <TouchableOpacity
                   onPress={handleResetEventTypes}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  style={styles.resetHeaderBtn}
                 >
-                  <RotateCcw size={12} color={colors.gold[500]} style={{ marginRight: 4 }} />
-                  <Text style={[styles.resetText, { color: colors.gold[500] }]}>Reset</Text>
+                  <Text style={[styles.sheetHeaderAction, { color: colors.gold[500] }]}>Reset</Text>
                 </TouchableOpacity>
+              ) : (
+                <View style={{ width: 40 }} />
               )}
-            </View>
-            <View style={[styles.groupedList, glassStyles.getCardStyle(isDark), { padding: 16 }]}>
-              <Text style={[styles.eventTypesDescription, { color: t.textMuted }]}>
-                Configure up to 7 ceremony & occasion types available in the booking wizard.
+              <Text style={[styles.sheetHeaderTitle, { color: t.text }]}>
+                Event Types ({eventTypes.length}/7)
               </Text>
+              <TouchableOpacity
+                onPress={() => setIsEventTypesModalOpen(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.sheetHeaderAction, { color: isDark ? colors.gold[400] : colors.gold[600], fontWeight: '700' }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-              {/* Chips Wrap */}
-              <View style={styles.chipsWrap}>
-                {eventTypes.map((type, index) => (
-                  <View
-                    key={`${type}_${index}`}
-                    style={[
-                      styles.chipItem,
-                      {
-                        backgroundColor: isDark ? 'rgba(214, 174, 107, 0.12)' : 'rgba(198, 151, 73, 0.1)',
-                        borderColor: isDark ? 'rgba(214, 174, 107, 0.25)' : 'rgba(198, 151, 73, 0.25)',
-                      },
-                    ]}
-                  >
-                    <Sparkles size={12} color={isDark ? colors.gold[400] : colors.gold[600]} style={{ marginRight: 6 }} />
-                    <Text style={[styles.chipText, { color: t.text }]}>{type}</Text>
-                    <TouchableOpacity
-                      onPress={() => handleRemoveEventType(type)}
-                      style={styles.chipRemoveBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel={`Remove event type ${type}`}
-                    >
-                      <X size={13} color={t.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-
-              {/* Add New Event Type Row or Max Reached Notice */}
-              {eventTypes.length < 7 ? (
-                <View style={styles.addTypeRow}>
-                  <TextInput
-                    style={[
-                      styles.addTypeInput,
-                      {
-                        color: t.text,
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                      },
-                    ]}
-                    placeholder="Add event type (e.g. Sangeet)"
-                    placeholderTextColor={t.textMuted}
-                    value={newEventTypeInput}
-                    onChangeText={setNewEventTypeInput}
-                    maxLength={30}
-                    onSubmitEditing={handleAddEventType}
-                    returnKeyType="done"
-                  />
+            {/* Chips List */}
+            <View style={styles.chipsWrap}>
+              {eventTypes.map((type, index) => (
+                <View
+                  key={`${type}_${index}`}
+                  style={[
+                    styles.chipItem,
+                    {
+                      backgroundColor: isDark ? 'rgba(214, 174, 107, 0.12)' : 'rgba(198, 151, 73, 0.1)',
+                      borderColor: isDark ? 'rgba(214, 174, 107, 0.25)' : 'rgba(198, 151, 73, 0.25)',
+                    },
+                  ]}
+                >
+                  <Sparkles size={12} color={isDark ? colors.gold[400] : colors.gold[600]} style={{ marginRight: 6 }} />
+                  <Text style={[styles.chipText, { color: t.text }]}>{type}</Text>
                   <TouchableOpacity
-                    style={[
-                      styles.addTypeButton,
-                      {
-                        backgroundColor: newEventTypeInput.trim()
-                          ? (isDark ? colors.gold[500] : colors.gold[600])
-                          : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
-                      },
-                    ]}
-                    onPress={handleAddEventType}
-                    disabled={!newEventTypeInput.trim() || savingEventTypes}
+                    onPress={() => handleRemoveEventType(type)}
+                    style={styles.chipRemoveBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel={`Remove event type ${type}`}
                   >
-                    {savingEventTypes ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <Text
-                        style={[
-                          styles.addTypeButtonText,
-                          { color: newEventTypeInput.trim() ? '#000' : t.textMuted },
-                        ]}
-                      >
-                        Add
-                      </Text>
-                    )}
+                    <X size={13} color={t.textMuted} />
                   </TouchableOpacity>
                 </View>
-              ) : (
-                <View style={styles.maxReachedNotice}>
-                  <AlertCircle size={14} color={isDark ? colors.gold[400] : colors.gold[600]} style={{ marginRight: 6 }} />
-                  <Text style={[styles.maxReachedText, { color: isDark ? colors.gold[400] : colors.gold[600] }]}>
-                    Maximum 7 event types reached. Remove one to add another.
-                  </Text>
-                </View>
-              )}
+              ))}
             </View>
-          </>
-        )}
 
-        {/* NOTIFICATIONS (OWNER ONLY) */}
-        {isOwner && (
-          <>
-            <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>
-              Notification Preferences
-            </Text>
-            <View style={[styles.groupedList, glassStyles.getCardStyle(isDark)]}>
-              <View
-                style={[
-                  styles.switchRow,
-                  { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-                ]}
-              >
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Price Change Alerts</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    Notify owner when staff modifies booking prices
-                  </Text>
-                </View>
-                <GoldSwitch
-                  value={settings.notificationSettings.notify_owner_on_price_edit}
-                  onValueChange={(val) => handleToggleNotification('notify_owner_on_price_edit', val)}
+            {/* Add Input or Max Notice */}
+            {eventTypes.length < 7 ? (
+              <View style={styles.addTypeRow}>
+                <TextInput
+                  style={[
+                    styles.addTypeInput,
+                    {
+                      color: t.text,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                    },
+                  ]}
+                  placeholder="Add type (e.g. Sangeet)"
+                  placeholderTextColor={t.textMuted}
+                  value={newEventTypeInput}
+                  onChangeText={setNewEventTypeInput}
+                  maxLength={30}
+                  onSubmitEditing={handleAddEventType}
+                  returnKeyType="done"
                 />
-              </View>
-
-              <View
-                style={[
-                  styles.switchRow,
-                  { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-                ]}
-              >
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Cancellation Alerts</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    Notify owner when a reserved booking is cancelled
-                  </Text>
-                </View>
-                <GoldSwitch
-                  value={settings.notificationSettings.notify_owner_on_cancel}
-                  onValueChange={(val) => handleToggleNotification('notify_owner_on_cancel', val)}
-                />
-              </View>
-
-              <View style={styles.switchRow}>
-                <View style={{ flex: 1, marginRight: 12 }}>
-                  <Text style={[styles.rowTitle, { color: t.text }]}>Payment Reversal Alerts</Text>
-                  <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                    Notify owner when ledger payments are reversed
-                  </Text>
-                </View>
-                <GoldSwitch
-                  value={settings.notificationSettings.notify_owner_on_reversal}
-                  onValueChange={(val) => handleToggleNotification('notify_owner_on_reversal', val)}
-                />
-              </View>
-            </View>
-          </>
-        )}
-
-        {/* SECURITY & SESSION */}
-        <Text style={[styles.sectionEyebrow, { color: t.textSubtle }]}>
-          Security & Session
-        </Text>
-        <View style={[styles.groupedList, glassStyles.getCardStyle(isDark)]}>
-          <TactileRow
-            onPress={lockApp}
-            style={[
-              styles.listRow,
-              { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(198,151,73,0.1)' },
-            ]}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={styles.rowWithIcon}>
-                  <View
-                    style={[
-                      styles.menuIconBox,
-                      { backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg },
-                    ]}
-                  >
-                    <Shield size={16} color={isDark ? colors.gold[400] : colors.gold[600]} />
-                  </View>
-                  <View>
-                    <Text style={[styles.rowTitle, { color: t.text }]}>Lock App (PIN)</Text>
-                    <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                      Require 4-digit PIN on resume
-                    </Text>
-                  </View>
-                </View>
-                <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                  <ChevronRight size={16} color={t.textSubtle} />
-                </Animated.View>
-              </>
-            )}
-          </TactileRow>
-
-          <TactileRow
-            onPress={() => setShowExitModal(true)}
-            style={styles.listRow}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={styles.rowWithIcon}>
-                  <View
-                    style={[
-                      styles.menuIconBox,
-                      {
-                        backgroundColor: isDark
-                          ? 'rgba(214, 174, 107, 0.15)'
-                          : '#FAF5EB',
-                      },
-                    ]}
-                  >
-                    <Power
-                      size={16}
-                      color={isDark ? colors.gold[400] : colors.gold[600]}
-                    />
-                  </View>
-                  <View>
-                    <Text style={[styles.rowTitle, { color: t.text }]}>
-                      Exit App
-                    </Text>
-                    <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                      Close application session
-                    </Text>
-                  </View>
-                </View>
-                <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                  <ChevronRight size={16} color={t.textSubtle} />
-                </Animated.View>
-              </>
-            )}
-          </TactileRow>
-
-          <TactileRow
-            onPress={() => setShowLogoutModal(true)}
-            style={styles.listRow}
-          >
-            {({ chevronX }: { chevronX: Animated.Value }) => (
-              <>
-                <View style={styles.rowWithIcon}>
-                  <View
-                    style={[
-                      styles.menuIconBox,
-                      {
-                        backgroundColor: isDark
-                          ? colors.status.danger.bgDark
-                          : colors.status.danger.bgLight,
-                      },
-                    ]}
-                  >
-                    <LogOut
-                      size={16}
-                      color={isDark ? colors.status.danger.dark : colors.status.danger.light}
-                    />
-                  </View>
-                  <View>
+                <TouchableOpacity
+                  style={[
+                    styles.addTypeButton,
+                    {
+                      backgroundColor: newEventTypeInput.trim()
+                        ? (isDark ? colors.gold[500] : colors.gold[600])
+                        : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                    },
+                  ]}
+                  onPress={handleAddEventType}
+                  disabled={!newEventTypeInput.trim() || savingEventTypes}
+                >
+                  {savingEventTypes ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
                     <Text
                       style={[
-                        styles.rowTitle,
-                        {
-                          color: isDark ? colors.status.danger.dark : colors.status.danger.light,
-                        },
+                        styles.addTypeButtonText,
+                        { color: newEventTypeInput.trim() ? '#FFF' : t.textMuted },
                       ]}
                     >
-                      Sign Out
+                      Add
                     </Text>
-                    <Text style={[styles.rowSubtitle, { color: t.textMuted }]}>
-                      Exit session securely
-                    </Text>
-                  </View>
-                </View>
-                <Animated.View style={{ transform: [{ translateX: chevronX }] }}>
-                  <ChevronRight size={16} color={t.textSubtle} />
-                </Animated.View>
-              </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.maxReachedNotice}>
+                <AlertCircle size={14} color={isDark ? colors.gold[400] : colors.gold[600]} style={{ marginRight: 6 }} />
+                <Text style={[styles.maxReachedText, { color: isDark ? colors.gold[400] : colors.gold[600] }]}>
+                  Maximum 7 event types reached. Remove one to add another.
+                </Text>
+              </View>
             )}
-          </TactileRow>
+          </Animated.View>
         </View>
-      </ScrollView>
+      </Modal>
 
       {/* MODAL: EDIT HALL PROFILE */}
       <Modal
@@ -1917,49 +2068,175 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 8,
   },
-  headerContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    borderRadius: 22,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerEmblem: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 6,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 11,
     marginTop: 1,
   },
   scrollContent: {
-    paddingBottom: 110,
+    paddingBottom: 120,
     maxWidth: 800,
     width: '100%',
     alignSelf: 'center',
   },
   profileCard: {
-    padding: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    justifyContent: 'space-between',
+    borderRadius: 22,
+    borderWidth: 1,
     marginBottom: 20,
-    borderRadius: 20,
     marginTop: 4,
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  profileLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  profileAvatarSquircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.gold[500],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  profileAvatarInitial: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  profileTextCol: {
+    flex: 1,
+  },
+  profileNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rolePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  rolePillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  profileSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  sectionWrap: {
+    marginBottom: 20,
+  },
+  groupedCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  iosRow: {
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  settingIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+    maxWidth: '55%',
+  },
+  rowValueText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  rowRightBadge: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  rowDivider: {
+    height: 1,
+    marginLeft: 16,
+  },
+  eventTypesModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+    gap: 16,
+  },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sheetHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  sheetHeaderAction: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   profileAvatar: {
     width: 48,
@@ -2156,10 +2433,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  rowTitle: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   rowSubtitle: {
     fontSize: 12,
