@@ -8,7 +8,8 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { FileText, Check } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { FileText, Check, IndianRupee } from 'lucide-react-native';
 import { DashboardTimelineRowItem } from '../../types/dashboard';
 import { colors } from '../../theme/colors';
 import { glassStyles } from '../../theme/glass';
@@ -20,6 +21,33 @@ interface SwipeableTimelineCardProps {
   onAction: (item: DashboardTimelineRowItem) => void;
 }
 
+function parseTimelineStamp(item: DashboardTimelineRowItem): {
+  primary: string;
+  secondary: string;
+} {
+  if (item.primaryTime) {
+    return {
+      primary: item.primaryTime,
+      secondary: item.secondaryTime || '',
+    };
+  }
+  const raw = (item.timeLabel || '').trim();
+  if (!raw) return { primary: 'Today', secondary: '' };
+  const parts = raw.split(/\s+/);
+  // e.g. "07 Nov Sat" or "17 Nov Concluded" -> primary "07 Nov", secondary "Sat"
+  if (parts.length >= 3 && /^\d{1,2}$/.test(parts[0])) {
+    return {
+      primary: `${parts[0]} ${parts[1]}`,
+      secondary: parts.slice(2).join(' '),
+    };
+  }
+  // e.g. "Today 02:30 PM" -> primary "Today", secondary "02:30 PM"
+  return {
+    primary: parts[0],
+    secondary: parts.slice(1).join(' '),
+  };
+}
+
 export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
   item,
   isLast,
@@ -28,6 +56,23 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
 }) => {
   const t = isDark ? colors.dark : colors.light;
   const isPayment = item.category === 'payments';
+  const { primary: primaryTime, secondary: secondaryTime } = parseTimelineStamp(item);
+
+  const spineColor = isDark ? 'rgba(229, 198, 135, 0.32)' : 'rgba(198, 151, 73, 0.35)';
+  const tickColor = isPayment
+    ? isDark
+      ? 'rgba(74, 222, 128, 0.40)'
+      : 'rgba(16, 185, 129, 0.40)'
+    : isDark
+      ? 'rgba(229, 198, 135, 0.40)'
+      : 'rgba(198, 151, 73, 0.40)';
+  const haloColor = isPayment
+    ? isDark
+      ? 'rgba(74, 222, 128, 0.16)'
+      : 'rgba(16, 185, 129, 0.14)'
+    : isDark
+      ? 'rgba(229, 198, 135, 0.16)'
+      : 'rgba(198, 151, 73, 0.14)';
 
   const panX = useRef(new Animated.Value(0)).current;
   const [isThresholdReached, setIsThresholdReached] = useState<boolean>(false);
@@ -47,7 +92,7 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
             if (!isThresholdReached) {
               setIsThresholdReached(true);
               Animated.spring(iconScaleAnim, {
-                toValue: 1.3,
+                toValue: 1.25,
                 tension: 70,
                 friction: 7,
                 useNativeDriver: Platform.OS !== 'web',
@@ -86,77 +131,87 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
 
   return (
     <View style={styles.timelineRow}>
-      {/* Left Time Stamp */}
+      {/* Col 1: Left Timestamp (64px right-aligned) */}
       <View style={styles.timelineLeftTime}>
-        <Text style={[styles.timelineTimePrimary, { color: t.text }]}>
-          {item.timeLabel.split(' ')[0]}
-        </Text>
-        <Text style={[styles.timelineTimeSecondary, { color: t.textMuted }]}>
-          {item.timeLabel.split(' ').slice(1).join(' ')}
-        </Text>
-      </View>
-
-      {/* Center Connected Railway Line */}
-      <View style={styles.timelineRailContainer}>
-        <View
-          style={[
-            styles.railSpine,
-            {
-              backgroundColor: isDark ? 'rgba(214,174,107,0.3)' : 'rgba(198,151,73,0.35)',
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.railNode,
-            {
-              backgroundColor: isPayment
-                ? isDark
-                  ? colors.status.success.dark
-                  : colors.status.success.light
-                : isDark
-                ? colors.gold[400]
-                : colors.gold[600],
-            },
-          ]}
+        <Text
+          numberOfLines={1}
+          style={[styles.timelineTimePrimary, { color: t.text }]}
         >
-          <Check size={10} color="#FFFFFF" strokeWidth={3} />
-        </View>
-        {!isLast ? (
-          <View
-            style={[
-              styles.railSpine,
-              {
-                backgroundColor: isDark ? 'rgba(214,174,107,0.3)' : 'rgba(198,151,73,0.35)',
-              },
-            ]}
-          />
-        ) : (
-          <View style={{ flex: 1 }} />
+          {primaryTime}
+        </Text>
+        {Boolean(secondaryTime) && (
+          <Text
+            numberOfLines={1}
+            style={[styles.timelineTimeSecondary, { color: t.textMuted }]}
+          >
+            {secondaryTime}
+          </Text>
         )}
       </View>
 
-      {/* Swipeable Container */}
-      <View style={styles.swipeContainer}>
+      {/* Col 2: Center Connected Spine (36px) with Halo Ring & Horizontal Tick */}
+      <View style={styles.timelineRailContainer}>
+        {/* Top vertical connector stem */}
+        <View style={[styles.railTopStem, { backgroundColor: spineColor }]} />
+
+        {/* Horizontal 16px connector tick to the right card */}
+        <View
+          pointerEvents="none"
+          style={[styles.horizontalTick, { backgroundColor: tickColor }]}
+        />
+
+        {/* 4px outer halo ring (32x32) wrapping 24x24 gradient node */}
+        <View style={[styles.railHaloRing, { backgroundColor: haloColor }]}>
+          {isPayment ? (
+            <View style={[styles.railNodeCircle, { backgroundColor: '#10B981' }]}>
+              <IndianRupee size={11} color="#FFFFFF" strokeWidth={2.8} />
+            </View>
+          ) : (
+            <LinearGradient
+              colors={isDark ? colors.goldGradientDark : colors.goldGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.railNodeCircle}
+            >
+              <Check size={12} color="#FFFFFF" strokeWidth={3} />
+            </LinearGradient>
+          )}
+        </View>
+
+        {/* Bottom continuous vertical spine */}
+        {!isLast ? (
+          <View style={[styles.railBottomSpine, { backgroundColor: spineColor }]} />
+        ) : (
+          <View style={styles.railEndCapWrap}>
+            <View style={[styles.railEndStem, { backgroundColor: spineColor }]} />
+            <View style={[styles.railEndDot, { backgroundColor: spineColor }]} />
+          </View>
+        )}
+      </View>
+
+      {/* Col 3: Swipeable Right Card */}
+      <View style={[styles.swipeContainer, { paddingBottom: isLast ? 4 : 14 }]}>
         {/* Underlying Action Well */}
-        <View style={styles.underlyingActionWell}>
+        <View style={[styles.underlyingActionWell, { bottom: isLast ? 4 : 14 }]}>
           <Animated.View
             style={[
               styles.actionWellIconCircle,
               {
-                backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg,
+                backgroundColor: isPayment ? t.emeraldPillBg : t.goldPillBg,
                 borderColor: isThresholdReached
-                  ? (isDark ? colors.gold[400] : colors.gold[600])
+                  ? isPayment
+                    ? t.emeraldText
+                    : t.goldText
                   : 'transparent',
                 transform: [{ scale: iconScaleAnim }],
               },
             ]}
           >
-            <FileText size={18} color={isDark ? colors.gold[400] : colors.gold[600]} />
+            <FileText size={18} color={isPayment ? t.emeraldText : t.goldText} />
           </Animated.View>
         </View>
 
-        {/* Foreground Card with gesture responder */}
+        {/* Foreground Glass Card */}
         <Animated.View
           {...panResponder.panHandlers}
           style={[
@@ -169,7 +224,7 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
             <Text style={[styles.timelineCardTitle, { color: t.text }]} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={[styles.timelineCardSubtitle, { color: t.textMuted }]}>
+            <Text style={[styles.timelineCardSubtitle, { color: t.textSecondary }]} numberOfLines={1}>
               {item.subtitle}
             </Text>
           </View>
@@ -180,30 +235,27 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
               style={({ pressed }) => [
                 styles.billButton,
                 {
-                  backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg,
-                  transform: [{ scale: pressed ? 0.94 : 1 }],
+                  backgroundColor: t.goldPillBg,
+                  transform: [{ scale: pressed ? 0.95 : 1 }],
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Open or share bill for ${item.title}`}
             >
-              <FileText size={12} color={isDark ? colors.gold[400] : colors.gold[600]} />
-              <Text
-                style={[
-                  styles.billButtonText,
-                  { color: isDark ? colors.gold[400] : colors.gold[600] },
-                ]}
-              >
-                Bill
+              <FileText size={14} color={t.goldText} strokeWidth={2.2} />
+              <Text style={[styles.billButtonText, { color: t.goldText }]}>Bill</Text>
+            </Pressable>
+          ) : item.dueAmountText ? (
+            <Pressable
+              onPress={() => onAction(item)}
+              style={[styles.duePillBadge, { backgroundColor: t.amberPillBg }]}
+            >
+              <Text style={[styles.duePillText, { color: t.amberText }]}>
+                {item.dueAmountText}
               </Text>
             </Pressable>
           ) : item.amount ? (
-            <Text
-              style={[
-                styles.timelineAmountBadge,
-                {
-                  color: isDark ? colors.status.success.dark : colors.status.success.light,
-                },
-              ]}
-            >
+            <Text style={[styles.timelineAmountBadge, { color: t.emeraldText }]}>
               {item.amount}
             </Text>
           ) : null}
@@ -216,96 +268,165 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
 const styles = StyleSheet.create({
   timelineRow: {
     flexDirection: 'row',
-    marginBottom: 10,
-    minHeight: 58,
+    alignItems: 'stretch',
+    minHeight: 74,
   },
   timelineLeftTime: {
-    width: 65,
-    paddingTop: 8,
+    width: 64,
+    paddingTop: 15,
+    paddingRight: 10,
     alignItems: 'flex-end',
-    paddingRight: 8,
+    flexShrink: 0,
   },
   timelineTimePrimary: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
+    lineHeight: 15,
+    fontVariant: ['tabular-nums'],
+    backgroundColor: 'transparent',
   },
   timelineTimeSecondary: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 3,
+    fontVariant: ['tabular-nums'],
+    backgroundColor: 'transparent',
   },
   timelineRailContainer: {
-    width: 24,
+    width: 36,
     alignItems: 'center',
+    position: 'relative',
+    flexShrink: 0,
   },
-  railSpine: {
+  railTopStem: {
+    width: 2,
+    height: 12,
+  },
+  horizontalTick: {
+    position: 'absolute',
+    top: 27,
+    left: 18,
+    width: 18,
+    height: 2,
+    zIndex: 1,
+  },
+  railHaloRing: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  railNodeCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#B8863B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.32,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  railBottomSpine: {
     width: 2,
     flex: 1,
   },
-  railNode: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
+  railEndCapWrap: {
+    flex: 1,
     alignItems: 'center',
-    marginVertical: 2,
+  },
+  railEndStem: {
+    width: 2,
+    flex: 1,
+    minHeight: 10,
+  },
+  railEndDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 6,
   },
   swipeContainer: {
     flex: 1,
+    minWidth: 0,
+    paddingLeft: 4,
     position: 'relative',
-    marginLeft: 6,
   },
   underlyingActionWell: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingRight: 16,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 84,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 10,
   },
   actionWellIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1.5,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
   },
   timelineCard: {
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
+    justifyContent: 'space-between',
+    gap: 10,
   },
   timelineCardContent: {
     flex: 1,
-    marginRight: 8,
+    minWidth: 0,
   },
   timelineCardTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
+    letterSpacing: -0.1,
+    backgroundColor: 'transparent',
   },
   timelineCardSubtitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
+    backgroundColor: 'transparent',
   },
   billButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
+    justifyContent: 'center',
+    gap: 6,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    flexShrink: 0,
   },
   billButtonText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
+    backgroundColor: 'transparent',
+  },
+  duePillBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flexShrink: 0,
+  },
+  duePillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   timelineAmountBadge: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    flexShrink: 0,
   },
 });
-

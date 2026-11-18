@@ -41,11 +41,15 @@ export interface DashboardDueCardItem {
 
 export interface DashboardTimelineRowItem {
   id: string;
+  bookingId?: string;
   timeLabel: string; // e.g. "08 Nov 02:30 PM"
+  primaryTime?: string;   // e.g. "Today" or "07 Nov"
+  secondaryTime?: string; // e.g. "02:30 PM" or "Sat"
   title: string;
   subtitle: string;
   category: 'events' | 'payments';
   billNumber?: string;
   amount?: string;
+  dueAmountText?: string; // e.g. "₹60K Due"
 }
 

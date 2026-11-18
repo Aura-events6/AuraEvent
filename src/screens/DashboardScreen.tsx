@@ -210,10 +210,20 @@ export const DashboardScreen: React.FC = () => {
     setIsCollectModalOpen(true);
   };
 
+  // Helper: 2-letter uppercase initials for customer avatar badges
+  const getInitials = (name: string) => {
+    const clean = (name || 'GU').trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase();
+  };
+
   // Micro-interaction 2.3 & 5.2: Optimistic UI Insertion + FLIP Layout Reflow
   const handleConfirmPaymentModal = async (
     val: number,
-    mode: 'UPI' | 'Cash' | 'Card',
+    mode: 'UPI' | 'Cash' | 'Card' | 'Credit',
     noteText: string,
     isSplit: boolean
   ) => {
@@ -224,13 +234,21 @@ export const DashboardScreen: React.FC = () => {
     setDues(prev => prev.filter(d => d.id !== selectedDue.id));
 
     // 2. Optimistic Timeline row prepend
+    const nowTime = new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
     const newRow: DashboardTimelineRowItem = {
       id: `opt-${Date.now()}`,
-      timeLabel: 'Just now • Confirmed',
-      title: `Payment Collected: ₹${val.toLocaleString('en-IN')}`,
-      subtitle: `${selectedDue.customerName} (${selectedDue.eventType})`,
+      bookingId: selectedDue.bookingId,
+      timeLabel: `Today ${nowTime}`,
+      primaryTime: 'Today',
+      secondaryTime: nowTime,
+      title: `${mode} Payment`,
+      subtitle: selectedDue.customerName,
       category: 'payments',
-      amount: `₹${val.toLocaleString('en-IN')}`,
+      amount: `+₹${val.toLocaleString('en-IN')}`,
     };
     setTimeline(prev => [newRow, ...prev]);
 
@@ -239,14 +257,17 @@ export const DashboardScreen: React.FC = () => {
       if (!prev) return prev;
       const newCollected = prev.collectedRevenue + val;
       const newPending = Math.max(0, prev.pendingDueAmount - val);
+      const newPendingCount = Math.max(0, prev.pendingDueCount - 1);
       return {
         ...prev,
         collectedRevenue: newCollected,
         pendingDueAmount: newPending,
+        pendingDueCount: newPendingCount,
         formatted: {
           ...prev.formatted,
           collectedRevenue: `₹${(newCollected / 100000).toFixed(1)}L`,
           pendingDue: `₹${(newPending / 100000).toFixed(2)}L`,
+          pendingSub: newPendingCount > 0 ? `${newPendingCount} Unpaid →` : 'All Settled ✓',
         },
       };
     });
@@ -259,6 +280,7 @@ export const DashboardScreen: React.FC = () => {
         bookingId: selectedDue.bookingId,
         amount: val,
         paymentMode: mode.toLowerCase() as any,
+        notes: noteText || undefined,
       });
       await loadDashboardData(true);
     } catch (err) {
@@ -364,8 +386,13 @@ export const DashboardScreen: React.FC = () => {
                 ],
               }}
             >
-              <LinearGradient colors={colors.goldGradient} style={styles.headerEmblem}>
-                <Crown size={20} color="#FFFFFF" />
+              <LinearGradient
+                colors={isDark ? colors.goldGradientDark : colors.goldGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerEmblem}
+              >
+                <Crown size={20} color="#FFFFFF" strokeWidth={2.3} />
               </LinearGradient>
             </Animated.View>
             <View style={styles.brandTextCol}>
@@ -382,22 +409,22 @@ export const DashboardScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* SEARCH BAR AT THE HEADER */}
+          {/* SEARCH BAR AT THE HEADER (.control-surface) */}
           <Pressable
             onPress={() => navigation.navigate('Search')}
             style={({ pressed }) => [
               styles.headerSearchBar,
               {
-                backgroundColor: isDark ? colors.dark.input : colors.light.input,
-                borderColor: isDark ? colors.dark.inputBorder : colors.light.inputBorder,
+                backgroundColor: t.controlSurface,
+                borderColor: t.controlBorder,
                 transform: [{ scale: pressed ? 0.96 : 1 }],
               },
             ]}
             accessibilityRole="button"
             accessibilityLabel="Search bookings, directory and clients"
           >
-            <Search size={15} color={isDark ? colors.gold[400] : colors.gold[600]} />
-            <Text style={[styles.headerSearchText, { color: t.textMuted }]}>
+            <Search size={15} color={t.goldText} strokeWidth={2.4} />
+            <Text style={[styles.headerSearchText, { color: t.text }]}>
               Search
             </Text>
           </Pressable>
@@ -437,39 +464,43 @@ export const DashboardScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="View executive financial analytics"
           >
-            <View>
-              <Text style={[styles.kpiLabel, { color: t.textMuted }]}>Expected</Text>
+            <View style={styles.kpiTextCol}>
+              <Text numberOfLines={1} style={[styles.kpiLabel, { color: t.textMuted }]}>
+                Expected
+              </Text>
               <RollingNumberTicker
                 targetValue={kpis?.expectedRevenue ?? 0}
                 isCurrency
                 fallbackText={kpis ? kpis.formatted.expectedRevenue : '...'}
                 style={[styles.kpiValue, { color: t.text }]}
               />
-              <Text style={[styles.kpiSub, { color: isDark ? colors.gold[400] : colors.gold[600] }]}>
+              <Text numberOfLines={1} style={[styles.kpiSub, { color: t.goldText }]}>
                 {kpis ? kpis.formatted.expectedBookings : '...'}
               </Text>
             </View>
-            <View style={[styles.kpiIconBox, { backgroundColor: 'transparent' }]}>
-              <Coins size={18} color={isDark ? colors.gold[400] : colors.gold[600]} />
+            <View style={[styles.kpiIconBox, { backgroundColor: t.goldPillBg }]}>
+              <Coins size={20} color={t.goldText} strokeWidth={2.2} />
             </View>
           </Pressable>
 
           {/* KPI 2: Collected Revenue */}
           <View style={[styles.kpiCard, glassStyles.getCardStyle(isDark)]}>
-            <View>
-              <Text style={[styles.kpiLabel, { color: t.textMuted }]}>Collected</Text>
+            <View style={styles.kpiTextCol}>
+              <Text numberOfLines={1} style={[styles.kpiLabel, { color: t.textMuted }]}>
+                Collected
+              </Text>
               <RollingNumberTicker
                 targetValue={kpis?.collectedRevenue ?? 0}
                 isCurrency
                 fallbackText={kpis ? kpis.formatted.collectedRevenue : '...'}
                 style={[styles.kpiValue, { color: t.text }]}
               />
-              <Text style={[styles.kpiSub, { color: isDark ? colors.status.success.dark : colors.status.success.light }]}>
+              <Text numberOfLines={1} style={[styles.kpiSub, { color: t.emeraldText }]}>
                 {kpis ? kpis.formatted.collectedPercentage : '...'}
               </Text>
             </View>
-            <View style={[styles.kpiIconBox, { backgroundColor: 'transparent' }]}>
-              <CheckCircle2 size={18} color={isDark ? colors.status.success.dark : colors.status.success.light} />
+            <View style={[styles.kpiIconBox, { backgroundColor: t.emeraldPillBg }]}>
+              <CheckCircle2 size={20} color={t.emeraldText} strokeWidth={2.2} />
             </View>
           </View>
 
@@ -479,35 +510,13 @@ export const DashboardScreen: React.FC = () => {
             style={({ pressed }) => [
               styles.kpiCard,
               glassStyles.getCardStyle(isDark),
-              {
-                borderColor:
-                  (kpis?.pendingDueAmount || 0) > 0
-                    ? 'rgba(245, 158, 11, 0.4)'
-                    : isDark
-                    ? 'rgba(16, 185, 129, 0.35)'
-                    : 'rgba(16, 185, 129, 0.25)',
-                transform: [{ scale: pressed ? 0.965 : 1 }],
-              },
+              { transform: [{ scale: pressed ? 0.965 : 1 }] },
             ]}
             accessibilityRole="button"
             accessibilityLabel="Open Khatabook dues management"
           >
-            <View>
-              <Text
-                style={[
-                  styles.kpiLabel,
-                  {
-                    color:
-                      (kpis?.overdueCount || 0) > 0
-                        ? isDark
-                          ? colors.status.danger.dark
-                          : colors.status.danger.light
-                        : isDark
-                        ? colors.status.success.dark
-                        : colors.status.success.light,
-                  },
-                ]}
-              >
+            <View style={styles.kpiTextCol}>
+              <Text numberOfLines={1} style={[styles.kpiLabel, { color: t.textMuted }]}>
                 Pending Due
               </Text>
               <RollingNumberTicker
@@ -517,54 +526,58 @@ export const DashboardScreen: React.FC = () => {
                 style={[styles.kpiValue, { color: t.text }]}
               />
               <Text
+                numberOfLines={1}
                 style={[
                   styles.kpiSub,
                   {
                     color:
                       (kpis?.pendingDueAmount || 0) === 0
-                        ? isDark
-                          ? colors.status.success.dark
-                          : colors.status.success.light
-                        : isDark
-                        ? colors.gold[400]
-                        : colors.gold[600],
+                        ? t.emeraldText
+                        : t.amberText,
                   },
                 ]}
               >
                 {kpis ? kpis.formatted.pendingSub : '...'}
               </Text>
             </View>
-            <View style={[styles.kpiIconBox, { backgroundColor: 'transparent' }]}>
+            <View
+              style={[
+                styles.kpiIconBox,
+                {
+                  backgroundColor:
+                    (kpis?.pendingDueAmount || 0) === 0
+                      ? t.emeraldPillBg
+                      : t.amberPillBg,
+                },
+              ]}
+            >
               <BookMarked
-                size={18}
+                size={20}
                 color={
-                  (kpis?.pendingDueAmount || 0) === 0
-                    ? isDark
-                      ? colors.status.success.dark
-                      : colors.status.success.light
-                    : isDark
-                    ? colors.status.danger.dark
-                    : colors.status.danger.light
+                  (kpis?.pendingDueAmount || 0) === 0 ? t.emeraldText : t.amberText
                 }
+                strokeWidth={2.2}
               />
             </View>
           </Pressable>
 
           {/* KPI 4: Functions Done */}
           <View style={[styles.kpiCard, glassStyles.getCardStyle(isDark)]}>
-            <View>
-              <Text style={[styles.kpiLabel, { color: t.textMuted }]}>Completed</Text>
+            <View style={styles.kpiTextCol}>
+              <Text numberOfLines={1} style={[styles.kpiLabel, { color: t.textMuted }]}>
+                Completed
+              </Text>
               <RollingNumberTicker
                 targetValue={kpis?.completedCount ?? 0}
                 fallbackText={kpis ? kpis.formatted.completedCount : '...'}
                 style={[styles.kpiValue, { color: t.text }]}
               />
-              <Text style={[styles.kpiSub, { color: t.textMuted }]}>
+              <Text numberOfLines={1} style={[styles.kpiSub, { color: t.textSecondary }]}>
                 {kpis ? kpis.formatted.upcomingCount : '...'}
               </Text>
             </View>
-            <View style={[styles.kpiIconBox, { backgroundColor: 'transparent' }]}>
-              <CalendarCheck size={18} color={isDark ? colors.gold[400] : colors.gold[600]} />
+            <View style={[styles.kpiIconBox, { backgroundColor: t.goldPillBg }]}>
+              <CalendarCheck size={20} color={t.goldText} strokeWidth={2.2} />
             </View>
           </View>
         </View>
@@ -573,36 +586,8 @@ export const DashboardScreen: React.FC = () => {
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <Text style={[styles.sectionTitle, { color: t.text }]}>Pending Dues</Text>
-            <View
-              style={[
-                styles.countBadge,
-                {
-                  backgroundColor:
-                    (kpis?.overdueCount || 0) > 0
-                      ? isDark
-                        ? colors.status.danger.bgDark
-                        : colors.status.danger.bgLight
-                      : isDark
-                      ? colors.status.success.bgDark
-                      : colors.status.success.bgLight,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.countBadgeText,
-                  {
-                    color:
-                      (kpis?.overdueCount || 0) > 0
-                        ? isDark
-                          ? colors.status.danger.dark
-                          : colors.status.danger.light
-                        : isDark
-                        ? colors.status.success.dark
-                        : colors.status.success.light,
-                  },
-                ]}
-              >
+            <View style={[styles.countBadge, { backgroundColor: t.goldPillBg }]}>
+              <Text style={[styles.countBadgeText, { color: t.goldText }]}>
                 {dues.length}
               </Text>
             </View>
@@ -618,7 +603,7 @@ export const DashboardScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="View all bookings in calendar"
           >
-            <Text style={[styles.carouselHint, { color: isDark ? colors.gold[400] : colors.gold[700], fontWeight: '700' }]}>
+            <Text style={[styles.carouselHint, { color: t.goldText, fontWeight: '700' }]}>
               View All Bookings →
             </Text>
           </Pressable>
@@ -630,14 +615,10 @@ export const DashboardScreen: React.FC = () => {
             <View
               style={[
                 styles.settledCheckBadge,
-                {
-                  backgroundColor: isDark
-                    ? 'rgba(16, 185, 129, 0.16)'
-                    : 'rgba(16, 185, 129, 0.12)',
-                },
+                { backgroundColor: t.emeraldPillBg },
               ]}
             >
-              <Check size={24} color="#10B981" strokeWidth={2.8} />
+              <Check size={24} color={t.emeraldText} strokeWidth={2.8} />
             </View>
             <Text style={[styles.settledDuesTitle, { color: t.text }]}>
               All Customer Dues Settled!
@@ -650,100 +631,113 @@ export const DashboardScreen: React.FC = () => {
           <View style={{ position: 'relative' }}>
             <SkeletonShimmer active={loading || refreshing} borderRadius={24} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.duesCarousel}>
-              {/* Max 4 Cards Rendered with Tactile Controls */}
-              {displayedDues.map(item => (
-                <View key={item.id} style={[styles.dueCard, glassStyles.getCardStyle(isDark)]}>
-                  <View style={styles.dueCardTop}>
-                    <View
-                      style={[
-                        styles.dueBadge,
-                        {
-                          backgroundColor:
-                            item.status === 'Overdue'
-                              ? isDark
-                                ? colors.status.danger.bgDark
-                                : colors.status.danger.bgLight
-                              : isDark
-                              ? colors.dark.accentBg
-                              : colors.light.accentBg,
-                        },
-                      ]}
-                    >
-                      <Text
+              {/* Max 4 Cards Rendered with Strict Design System */}
+              {displayedDues.map(item => {
+                const isOverdue = item.status === 'Overdue';
+                return (
+                  <View key={item.id} style={[styles.dueCard, glassStyles.getCardStyle(isDark)]}>
+                    {/* Row 1: Status Pill + Date */}
+                    <View style={styles.dueCardTop}>
+                      <View
                         style={[
-                          styles.dueBadgeText,
+                          styles.dueBadge,
                           {
-                            color:
-                              item.status === 'Overdue'
-                                ? isDark
-                                  ? colors.status.danger.dark
-                                  : colors.status.danger.light
-                                : isDark
-                                ? colors.gold[400]
-                                : colors.gold[700],
+                            backgroundColor: isOverdue ? t.rosePillBg : t.amberPillBg,
                           },
                         ]}
                       >
-                        {item.status}
+                        {isOverdue && (
+                          <View
+                            style={[styles.dueBadgeDot, { backgroundColor: t.roseText }]}
+                          />
+                        )}
+                        <Text
+                          style={[
+                            styles.dueBadgeText,
+                            { color: isOverdue ? t.roseText : t.amberText },
+                          ]}
+                        >
+                          {item.status}
+                        </Text>
+                      </View>
+                      <Text style={[styles.dueDate, { color: t.textMuted }]}>
+                        {item.eventDate}
                       </Text>
                     </View>
-                    <Text style={[styles.dueDate, { color: t.textMuted }]}>{item.eventDate}</Text>
-                  </View>
 
-                  <Text style={[styles.dueCustomer, { color: t.text }]} numberOfLines={1}>
-                    {item.customerName}
-                  </Text>
-                  <Text style={[styles.dueEvent, { color: t.textMuted }]}>{item.eventType}</Text>
+                    {/* Row 2: 40x40 Gold Initials Avatar + Customer Name & Event Subtitle */}
+                    <View style={styles.dueProfileRow}>
+                      <View style={[styles.dueAvatarBox, { backgroundColor: t.goldPillBg }]}>
+                        <Text style={[styles.dueAvatarText, { color: t.goldText }]}>
+                          {getInitials(item.customerName)}
+                        </Text>
+                      </View>
+                      <View style={styles.dueProfileTextCol}>
+                        <Text style={[styles.dueCustomer, { color: t.text }]} numberOfLines={1}>
+                          {item.customerName}
+                        </Text>
+                        <Text style={[styles.dueEvent, { color: t.textSecondary }]} numberOfLines={1}>
+                          {item.eventType}
+                        </Text>
+                      </View>
+                    </View>
 
-                  <View style={[styles.dueDivider, { borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(198,151,73,0.18)' }]}>
-                    <Text style={[styles.dueAmountLabel, { color: t.textMuted }]}>Due</Text>
-                    <Text
+                    {/* Row 3: Hairline Gold Divider + Warm Charcoal Tabular Price */}
+                    <View
                       style={[
-                        styles.dueAmountValue,
+                        styles.dueDivider,
                         {
-                          color:
-                            item.status === 'Overdue'
-                              ? isDark
-                                ? colors.status.danger.dark
-                                : colors.status.danger.light
-                              : isDark
-                              ? colors.gold[400]
-                              : colors.gold[700],
+                          borderTopColor: isDark
+                            ? 'rgba(229, 198, 135, 0.14)'
+                            : 'rgba(198, 151, 73, 0.15)',
                         },
                       ]}
                     >
-                      {item.dueAmount}
-                    </Text>
-                  </View>
+                      <Text style={[styles.dueAmountLabel, { color: t.textMuted }]}>Due</Text>
+                      <Text style={[styles.dueAmountValue, { color: t.text }]}>
+                        {item.dueAmount}
+                      </Text>
+                    </View>
 
-                  <View style={styles.dueActionsRow}>
-                    <Pressable
-                      onPress={(e) => openCollectModal(item, e)}
-                      style={({ pressed }) => [
-                        styles.collectBtnWrapper,
-                        { transform: [{ scale: pressed ? 0.95 : 1 }] },
-                      ]}
-                    >
-                      <LinearGradient colors={colors.goldGradient} style={styles.collectBtn}>
-                        <Text style={styles.collectBtnText}>Collect</Text>
-                      </LinearGradient>
-                    </Pressable>
+                    {/* Row 4: 44px Metallic Champagne Collect CTA + 44x44 Emerald Share/WhatsApp */}
+                    <View style={styles.dueActionsRow}>
+                      <Pressable
+                        onPress={(e) => openCollectModal(item, e)}
+                        style={({ pressed }) => [
+                          styles.collectBtnWrapper,
+                          { transform: [{ scale: pressed ? 0.965 : 1 }] },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Collect payment from ${item.customerName}`}
+                      >
+                        <LinearGradient
+                          colors={isDark ? colors.goldGradientDark : colors.goldGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.collectBtn}
+                        >
+                          <Text style={styles.collectBtnText}>Collect</Text>
+                        </LinearGradient>
+                      </Pressable>
 
-                    <Pressable
-                      onPress={() => openWhatsAppModal(item)}
-                      style={({ pressed }) => [
-                        styles.whatsappBtn,
-                        {
-                          backgroundColor: isDark ? colors.status.success.bgDark : colors.status.success.bgLight,
-                          transform: [{ scale: pressed ? 0.93 : 1 }],
-                        },
-                      ]}
-                    >
-                      <MessageCircle size={18} color={isDark ? colors.status.success.dark : colors.status.success.light} />
-                    </Pressable>
+                      <Pressable
+                        onPress={() => openWhatsAppModal(item)}
+                        style={({ pressed }) => [
+                          styles.whatsappBtn,
+                          {
+                            backgroundColor: t.emeraldPillBg,
+                            transform: [{ scale: pressed ? 0.94 : 1 }],
+                          },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Share PDF bill with ${item.customerName}`}
+                      >
+                        <MessageCircle size={19} color={t.emeraldText} strokeWidth={2.2} />
+                      </Pressable>
+                    </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
 
               {/* Sleek Carousel Tail Card -> Navigates to Bookings Calendar */}
               <Pressable
@@ -760,21 +754,21 @@ export const DashboardScreen: React.FC = () => {
                   style={[
                     styles.viewAllTailIconCircle,
                     {
-                      backgroundColor: isDark ? colors.dark.accentBg : colors.light.accentBg,
-                      borderColor: isDark ? colors.gold[500] : colors.gold[600],
+                      backgroundColor: t.goldPillBg,
+                      borderColor: t.controlBorder,
                     },
                   ]}
                 >
                   <ChevronRight
                     size={20}
-                    color={isDark ? colors.gold[400] : colors.gold[700]}
+                    color={t.goldText}
                     strokeWidth={2.5}
                   />
                 </View>
                 <Text
                   style={[
                     styles.viewAllTailOverline,
-                    { color: isDark ? colors.gold[400] : colors.gold[700] },
+                    { color: t.goldText },
                   ]}
                 >
                   MASTER SCHEDULE
@@ -795,23 +789,38 @@ export const DashboardScreen: React.FC = () => {
         {/* 4. COMPLETED TIMELINE (LEFT-RAIL CHRONOLOGICAL) */}
         <View style={styles.timelineHeader}>
           <View style={styles.sectionTitleRow}>
-            <Text style={[styles.sectionTitle, { color: t.text }]}>Completed Timeline</Text>
+            <Text style={[styles.sectionTitle, { color: t.text }]}>Timeline</Text>
           </View>
 
-          {/* 3.3 Sliding Pill with Overshoot Spring */}
-          <View style={[styles.filterCapsule, glassStyles.getCardStyle(isDark)]}>
+          {/* 44px Control-Surface Segmented Switch with 135deg Metallic Gold Sliding Pill */}
+          <View
+            style={[
+              styles.filterCapsule,
+              {
+                backgroundColor: t.controlSurface,
+                borderColor: t.controlBorder,
+              },
+            ]}
+          >
             <Animated.View
+              pointerEvents="none"
               style={[
                 styles.slidingFilterPill,
                 {
                   left: timelineFilterAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: ['2%', '51%'],
+                    outputRange: ['2.5%', '50%'],
                   }),
-                  backgroundColor: isDark ? colors.gold[400] : colors.gold[600],
                 },
               ]}
-            />
+            >
+              <LinearGradient
+                colors={isDark ? colors.goldGradientDark : colors.goldGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.slidingFilterPillGradient}
+              />
+            </Animated.View>
 
             <Pressable
               onPress={() => setTimelineFilter('all')}
@@ -819,13 +828,15 @@ export const DashboardScreen: React.FC = () => {
                 styles.filterTab,
                 { transform: [{ scale: pressed ? 0.96 : 1 }] },
               ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: timelineFilter === 'all' }}
             >
               <Text
                 style={[
                   styles.filterTabText,
                   {
-                    color: timelineFilter === 'all' ? '#121212' : t.textMuted,
-                    fontWeight: timelineFilter === 'all' ? '800' : '600',
+                    color: timelineFilter === 'all' ? '#FFFFFF' : t.textSecondary,
+                    fontWeight: timelineFilter === 'all' ? '700' : '600',
                   },
                 ]}
               >
@@ -839,13 +850,15 @@ export const DashboardScreen: React.FC = () => {
                 styles.filterTab,
                 { transform: [{ scale: pressed ? 0.96 : 1 }] },
               ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: timelineFilter === 'events' }}
             >
               <Text
                 style={[
                   styles.filterTabText,
                   {
-                    color: timelineFilter === 'events' ? '#121212' : t.textMuted,
-                    fontWeight: timelineFilter === 'events' ? '800' : '600',
+                    color: timelineFilter === 'events' ? '#FFFFFF' : t.textSecondary,
+                    fontWeight: timelineFilter === 'events' ? '700' : '600',
                   },
                 ]}
               >
@@ -872,8 +885,12 @@ export const DashboardScreen: React.FC = () => {
                 isLast={idx === filteredTimeline.length - 1}
                 isDark={isDark}
                 onAction={timelineItem => {
-                  if (timelineItem.billNumber) {
-                    showToast('Bill opened');
+                  if (timelineItem.bookingId) {
+                    navigation.navigate('BookingDetails', {
+                      bookingId: timelineItem.bookingId,
+                    });
+                  } else if (timelineItem.billNumber) {
+                    showToast(`Bill #${timelineItem.billNumber} opened`);
                   } else {
                     showToast(`Receipt for ${timelineItem.title} accessed`);
                   }
@@ -1119,14 +1136,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    height: 44,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 1.5,
     flexShrink: 0,
   },
   headerSearchText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   headerActions: {
@@ -1148,49 +1165,62 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 110,
+    paddingBottom: 120,
   },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    rowGap: 12,
+    marginBottom: 24,
   },
   kpiCard: {
-    width: '48%',
-    padding: 14,
+    width: '48.2%',
+    borderRadius: 24,
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  kpiTextCol: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 8,
   },
   kpiLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
+    backgroundColor: 'transparent',
   },
   kpiValue: {
     fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontWeight: '700',
+    letterSpacing: -0.4,
     marginTop: 2,
+    fontVariant: ['tabular-nums'],
+    backgroundColor: 'transparent',
   },
   kpiSub: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
+    fontVariant: ['tabular-nums'],
+    backgroundColor: 'transparent',
   },
   kpiIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    flexShrink: 0,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
     paddingHorizontal: 2,
   },
   sectionTitleRow: {
@@ -1199,90 +1229,135 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: -0.3,
   },
   countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   countBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   carouselHint: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   viewAllHeaderBtn: {
     paddingVertical: 4,
     paddingHorizontal: 6,
   },
   duesCarousel: {
-    gap: 12,
+    gap: 14,
     paddingBottom: 8,
   },
   dueCard: {
-    width: 250,
-    padding: 16,
+    width: 278,
+    padding: 20,
     borderRadius: 24,
+    justifyContent: 'space-between',
   },
   dueCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
   },
   dueBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  dueBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   dueBadgeText: {
     fontSize: 10,
     fontWeight: '700',
   },
   dueDate: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
+    fontVariant: ['tabular-nums'],
+  },
+  dueProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dueAvatarBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  dueAvatarText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  dueProfileTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   dueCustomer: {
     fontSize: 14,
     fontWeight: '700',
-    marginTop: 2,
+    backgroundColor: 'transparent',
   },
   dueEvent: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
+    marginTop: 2,
+    backgroundColor: 'transparent',
   },
   dueDivider: {
     borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginTop: 12,
-    paddingTop: 8,
+    marginVertical: 14,
+    paddingTop: 12,
   },
   dueAmountLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
   },
   dueAmountValue: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    fontVariant: ['tabular-nums'],
+    backgroundColor: 'transparent',
   },
   dueActionsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    alignItems: 'center',
+    gap: 10,
   },
   collectBtnWrapper: {
     flex: 1,
+    height: 44,
+    borderRadius: 12,
+    shadowColor: '#B8863B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.38,
+    shadowRadius: 10,
+    elevation: 4,
   },
   collectBtn: {
-    height: 38,
+    flex: 1,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1291,13 +1366,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 0.2,
   },
   whatsappBtn: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   viewAllTailCard: {
     width: 170,
@@ -1381,28 +1458,39 @@ const styles = StyleSheet.create({
   filterCapsule: {
     position: 'relative',
     flexDirection: 'row',
-    padding: 3,
-    borderRadius: 20,
-    minWidth: 140,
+    height: 44,
+    padding: 4,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    minWidth: 152,
+    alignItems: 'center',
   },
   slidingFilterPill: {
     position: 'absolute',
-    top: 3,
-    bottom: 3,
-    width: '47%',
-    borderRadius: 16,
+    top: 4,
+    bottom: 4,
+    width: '47.5%',
+    borderRadius: 999,
+    shadowColor: '#B8863B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  slidingFilterPillGradient: {
+    flex: 1,
+    borderRadius: 999,
   },
   filterTab: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
+    height: 36,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
   },
   filterTabText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   timelineList: {

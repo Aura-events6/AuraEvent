@@ -139,15 +139,9 @@ export async function fetchDashboardYearKPIs(
     const collectionRate =
       expectedRevenue > 0 ? Math.round((collectedRevenue / expectedRevenue) * 100) : 0;
 
-    // Subtitle formatting for Pending Due
-    let pendingSub = 'All Settled ✓';
-    if (pendingDueCount > 0) {
-      if (overdueCount > 0) {
-        pendingSub = `${overdueCount} Overdue →`;
-      } else {
-        pendingSub = `0 Overdue • ${upcomingDueCount} Upcoming →`;
-      }
-    }
+    // Subtitle formatting for Pending Due (concise single-line per design-system.md)
+    const pendingSub =
+      pendingDueCount > 0 ? `${pendingDueCount} Unpaid →` : 'All Settled ✓';
 
     return {
       expectedRevenue,
@@ -298,15 +292,36 @@ export async function fetchDashboardTimeline(
 
     const items: DashboardTimelineRowItem[] = [];
 
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
     (bookingsData || []).forEach((b: any) => {
       const formattedDate = formatDisplayDayMonth(b.start_date);
+      const isToday = b.start_date === todayStr;
+      let weekdayLabel = 'Done';
+      if (b.start_date) {
+        const parts = String(b.start_date).split('-');
+        if (parts.length === 3) {
+          const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          if (!isNaN(dt.getTime())) {
+            weekdayLabel = WEEKDAYS[dt.getDay()];
+          }
+        }
+      }
+
+      const pendingBal = Number(b.pending_balance) || 0;
+      const isPaid = pendingBal <= 0;
+
       items.push({
         id: `event_${b.booking_id}`,
-        timeLabel: `${formattedDate} Concluded`,
-        title: `${b.event_type || 'Event'} Completed`,
-        subtitle: `${b.customer_name} • Bill #${b.bill_number || 'N/A'}`,
+        bookingId: b.booking_id,
+        timeLabel: `${isToday ? 'Today' : formattedDate} ${weekdayLabel}`,
+        primaryTime: isToday ? 'Today' : formattedDate,
+        secondaryTime: weekdayLabel,
+        title: b.customer_name || `${b.event_type || 'Event'} Completed`,
+        subtitle: `${b.event_type || 'Event'} • ${isPaid ? 'Paid' : 'Pending'}`,
         category: 'events',
         billNumber: b.bill_number || undefined,
+        dueAmountText: !isPaid ? `${formatCompactCurrency(pendingBal)} Due` : undefined,
         amount: b.total_contract_amount
           ? `₹${Number(b.total_contract_amount).toLocaleString('en-IN')}`
           : undefined,
