@@ -66,6 +66,7 @@ export const BookingDetailsScreen: React.FC = () => {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   const [reversalTargetPayment, setReversalTargetPayment] = useState<BookingPaymentRecord | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const currencySymbol = hall?.currency_symbol || '₹';
   const isOwner = user?.role === 'owner';
@@ -125,50 +126,54 @@ export const BookingDetailsScreen: React.FC = () => {
     }
   };
 
-  // State for PDF Generation
-  const [generatingPdf, setGeneratingPdf] = useState<boolean>(false);
-
-  // Generate & Share Real PDF Bill via Native Android Share Sheet
-  const handleGenerateAndSharePdf = async () => {
-    if (!booking) return;
+  // Handle Generate & Share Real PDF Invoice
+  const handleSharePdfBill = async () => {
+    if (!booking || isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
     try {
-      setGeneratingPdf(true);
+      const reversedIds = new Set(
+        (booking.payments || [])
+          .filter(p => p.is_reversal && p.reverses_payment_id)
+          .map(p => p.reverses_payment_id)
+      );
+      const activePayments = (booking.payments || [])
+        .filter(p => !p.is_reversal && !reversedIds.has(p.id))
+        .map(p => ({
+          date: new Date(p.created_at).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
+          mode: p.payment_mode,
+          amount: Number(p.amount) || 0,
+          notes: p.notes,
+        }));
+
       await generateAndShareInvoicePdf({
-        hallName: hall?.name || 'Aura Luxury Convention',
-        hallPhone: hall?.phone || '',
-        hallAddress: hall?.address || null,
-        hallGst: (hall as any)?.gstNumber || null,
         billNumber: booking.bill_number,
-        invoiceDate: booking.created_at || new Date().toISOString(),
+        hallName: hall?.name || 'Function Hall',
+        hallPhone: hall?.phone || null,
+        hallAddress: hall?.address || null,
+        hallGst: hall?.gstNumber || null,
         customerName: booking.customers?.name || 'Customer',
-        customerMobile: booking.customers?.mobile || '',
+        customerMobile: booking.customers?.mobile || null,
         eventType: booking.event_type || 'Event',
-        packageName: booking.packages?.name || 'Standard Package',
         eventDate: booking.start_date,
+        endDate: booking.end_date,
         slot: booking.slot,
+        packageName: booking.packages?.name || null,
         basePrice: Number(booking.booking_price) || 0,
-        extraChargesItems: booking.extra_charges_items?.map((item: any) => ({
-          title: item.title,
-          amount: Number(item.amount) || 0,
-          notes: item.notes || null,
-        })),
-        totalContractAmount: Number(booking.total_contract_amount) || 0,
+        extraChargesItems: booking.extra_charges_items,
+        extraChargesTotal: Number(booking.extra_charges) || 0,
+        totalContract: Number(booking.total_contract_amount) || 0,
         totalPaid: Number(booking.total_paid) || 0,
-        pendingBalance: Number(booking.pending_balance) || 0,
-        paymentStatus:
-          Number(booking.pending_balance) <= 0
-            ? 'paid'
-            : Number(booking.total_paid) > 0
-              ? 'partial'
-              : 'pending',
-        promisedPayByDate: booking.latest_promised_pay_by_date || null,
-        upiId: hall?.phone ? `${hall.phone.replace(/[^0-9]/g, '')}@upi` : null,
-        currencySymbol: currencySymbol,
+        balanceDue: Number(booking.pending_balance) || 0,
+        promisedPayByDate: booking.latest_promised_pay_by_date,
+        payments: activePayments,
+        currencySymbol,
       });
-    } catch (err: any) {
-      console.warn('PDF bill share error:', err);
     } finally {
-      setGeneratingPdf(false);
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -294,32 +299,6 @@ export const BookingDetailsScreen: React.FC = () => {
                   : 'PENDING'}
           </Text>
         </View>
-
-        {/* Quick Header PDF Action */}
-        <Pressable
-          onPress={handleGenerateAndSharePdf}
-          disabled={generatingPdf}
-          style={({ pressed }) => [
-            styles.headerPdfBtn,
-            {
-              backgroundColor: isDark
-                ? 'rgba(214, 174, 107, 0.14)'
-                : 'rgba(198, 151, 73, 0.12)',
-              borderColor: isDark
-                ? 'rgba(214, 174, 107, 0.35)'
-                : 'rgba(198, 151, 73, 0.30)',
-              transform: [{ scale: pressed ? 0.92 : 1 }],
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Share PDF Bill"
-        >
-          {generatingPdf ? (
-            <ActivityIndicator size="small" color={isDark ? colors.gold[400] : colors.gold[700]} />
-          ) : (
-            <FileText size={17} color={isDark ? colors.gold[400] : colors.gold[700]} strokeWidth={2.2} />
-          )}
-        </Pressable>
       </View>
 
       <ScrollView
@@ -457,7 +436,7 @@ export const BookingDetailsScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Quick Action Dial / WhatsApp buttons with tactile scale */}
+          {/* Quick Action Dial / WhatsApp / PDF Bill buttons with tactile scale */}
           <View style={styles.customerActionRow}>
             <Pressable
               onPress={handleCallCustomer}
@@ -473,8 +452,10 @@ export const BookingDetailsScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel="Call Customer"
             >
-              <Phone size={16} color={isDark ? colors.gold[400] : colors.gold[600]} />
-              <Text style={[styles.actionPillText, { color: t.text }]}>Call Customer</Text>
+              <Phone size={15} color={isDark ? colors.gold[400] : colors.gold[600]} />
+              <Text numberOfLines={1} style={[styles.actionPillText, { color: t.text }]}>
+                Call
+              </Text>
             </Pressable>
 
             <Pressable
@@ -491,8 +472,50 @@ export const BookingDetailsScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel="WhatsApp Customer"
             >
-              <MessageCircle size={16} color="#25D366" />
-              <Text style={[styles.actionPillText, { color: '#25D366' }]}>WhatsApp</Text>
+              <MessageCircle size={15} color="#25D366" />
+              <Text numberOfLines={1} style={[styles.actionPillText, { color: '#25D366' }]}>
+                WhatsApp
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleSharePdfBill}
+              disabled={isGeneratingPdf}
+              style={({ pressed }) => [
+                styles.actionPillBtn,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(214, 174, 107, 0.14)'
+                    : 'rgba(198, 151, 73, 0.14)',
+                  borderColor: isDark
+                    ? 'rgba(214, 174, 107, 0.38)'
+                    : 'rgba(198, 151, 73, 0.40)',
+                  borderWidth: 1,
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Generate and Share PDF Bill"
+            >
+              {isGeneratingPdf ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? colors.gold[400] : colors.gold[600]}
+                />
+              ) : (
+                <>
+                  <FileText size={15} color={isDark ? colors.gold[400] : colors.gold[700]} />
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.actionPillText,
+                      { color: isDark ? colors.gold[400] : colors.gold[700] },
+                    ]}
+                  >
+                    PDF Bill
+                  </Text>
+                </>
+              )}
             </Pressable>
           </View>
         </View>
@@ -551,42 +574,6 @@ export const BookingDetailsScreen: React.FC = () => {
               />
             </View>
           </View>
-
-          {/* PDF Invoice Generator Button */}
-          <Pressable
-            onPress={handleGenerateAndSharePdf}
-            disabled={generatingPdf}
-            style={({ pressed }) => [
-              styles.generatePdfBtn,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(214, 174, 107, 0.12)'
-                  : 'rgba(198, 151, 73, 0.10)',
-                borderColor: isDark
-                  ? 'rgba(214, 174, 107, 0.35)'
-                  : 'rgba(198, 151, 73, 0.30)',
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Generate & Share PDF Bill"
-          >
-            {generatingPdf ? (
-              <ActivityIndicator size="small" color={isDark ? colors.gold[400] : colors.gold[700]} />
-            ) : (
-              <View style={styles.generatePdfBtnInner}>
-                <FileText size={16} color={isDark ? colors.gold[400] : colors.gold[700]} strokeWidth={2.2} />
-                <Text
-                  style={[
-                    styles.generatePdfBtnText,
-                    { color: isDark ? colors.gold[400] : colors.gold[700] },
-                  ]}
-                >
-                  Download / Share PDF Bill
-                </Text>
-              </View>
-            )}
-          </Pressable>
         </View>
 
         {/* 3. Event & Schedule Contract */}
@@ -899,36 +886,38 @@ export const BookingDetailsScreen: React.FC = () => {
             </Pressable>
           )}
 
-          {/* Share PDF receipt when fully settled */}
-          {Number(booking.pending_balance) <= 0 && (
+          {/* Share PDF Receipt if elapsed and fully settled */}
+          {isElapsed && Number(booking.pending_balance) <= 0 && (
             <Pressable
-              onPress={handleGenerateAndSharePdf}
-              disabled={generatingPdf}
+              onPress={handleSharePdfBill}
+              disabled={isGeneratingPdf}
               style={({ pressed }) => [
-                styles.shareReceiptFullBtn,
+                styles.recordPaymentWrap,
                 {
-                  backgroundColor: isDark
-                    ? 'rgba(214, 174, 107, 0.14)'
-                    : 'rgba(198, 151, 73, 0.10)',
-                  borderColor: isDark
-                    ? 'rgba(214, 174, 107, 0.35)'
-                    : 'rgba(198, 151, 73, 0.30)',
+                  flex: 1,
                   transform: [{ scale: pressed ? 0.96 : 1 }],
                 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Share PDF Bill"
+              accessibilityLabel="Share Completed PDF Receipt"
             >
-              {generatingPdf ? (
-                <ActivityIndicator size="small" color={isDark ? colors.gold[400] : colors.gold[700]} />
-              ) : (
-                <>
-                  <FileText size={16} color={isDark ? colors.gold[400] : colors.gold[700]} strokeWidth={2.2} />
-                  <Text style={[styles.shareReceiptFullBtnText, { color: isDark ? colors.gold[400] : colors.gold[700] }]}>
-                    Share PDF Bill
-                  </Text>
-                </>
-              )}
+              <LinearGradient
+                colors={colors.goldGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.recordPaymentGradient}
+              >
+                {isGeneratingPdf ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <FileText size={16} color="#FFFFFF" strokeWidth={2.2} />
+                    <Text numberOfLines={1} style={styles.recordPaymentBarBtnText}>
+                      Share PDF Receipt
+                    </Text>
+                  </>
+                )}
+              </LinearGradient>
             </Pressable>
           )}
         </View>
@@ -1040,15 +1029,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  headerPdfBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-  },
   scrollContent: {
     padding: 16,
     gap: 14,
@@ -1155,26 +1135,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: -0.3,
     marginTop: 2,
-  },
-  generatePdfBtn: {
-    marginTop: 10,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generatePdfBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  generatePdfBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: -0.2,
   },
   detailItemRow: {
     flexDirection: 'row',

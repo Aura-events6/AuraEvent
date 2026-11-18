@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import {
   Calendar,
-  MessageCircle,
+  FileText,
   CreditCard,
   Phone,
   Clock,
@@ -237,19 +237,26 @@ export const KhatabookCard: React.FC<KhatabookCardProps> = ({
             styles.whatsAppBtn,
             {
               backgroundColor: isDark
-                ? 'rgba(37, 211, 102, 0.15)'
-                : 'rgba(37, 211, 102, 0.12)',
+                ? 'rgba(214, 174, 107, 0.14)'
+                : 'rgba(198, 151, 73, 0.12)',
               borderColor: isDark
-                ? 'rgba(37, 211, 102, 0.40)'
-                : 'rgba(37, 211, 102, 0.45)',
+                ? 'rgba(214, 174, 107, 0.38)'
+                : 'rgba(198, 151, 73, 0.40)',
               transform: [{ scale: pressed ? 0.95 : 1 }],
             },
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Share invoice on WhatsApp"
+          accessibilityLabel="Share PDF bill"
         >
-          <MessageCircle size={15} color="#25D366" />
-          <Text style={styles.whatsAppBtnText}>WhatsApp Bill</Text>
+          <FileText size={15} color={isDark ? colors.gold[400] : colors.gold[700]} />
+          <Text
+            style={[
+              styles.whatsAppBtnText,
+              { color: isDark ? colors.gold[400] : colors.gold[700] },
+            ]}
+          >
+            Share PDF Bill
+          </Text>
         </Pressable>
 
         <Pressable

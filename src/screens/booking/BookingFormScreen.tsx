@@ -53,6 +53,7 @@ import {
   searchCustomers,
   SlotAvailabilityResult,
 } from '../../services/bookingService';
+import { generateAndShareInvoicePdf } from '../../services/pdfService';
 import { BookingSlot } from '../../types/calendar';
 import { PackageItem } from '../../types/booking';
 import {
@@ -1501,6 +1502,49 @@ export const BookingFormScreen: React.FC = () => {
           billNumber={createdBillNumber}
           currencySymbol={currencySymbol}
           isDark={isDark}
+          onSharePdfBill={async () => {
+            await generateAndShareInvoicePdf({
+              billNumber: createdBillNumber || `BILL-${Date.now().toString().slice(-4)}`,
+              hallName: hall?.name || 'Function Hall',
+              hallPhone: hall?.phone || null,
+              hallAddress: hall?.address || null,
+              hallGst: hall?.gstNumber || null,
+              customerName: customerName.trim() || 'Customer',
+              customerMobile: customerMobile.trim() || null,
+              eventType: effectiveEventTitle,
+              eventDate: startDate,
+              endDate: isMultiDay ? endDate : startDate,
+              slot,
+              packageName: selectedPackageDisplayName,
+              basePrice: currentBasePrice,
+              extraChargesItems: dynamicExpenses
+                .filter(e => e.reason.trim() && Number(e.amount) > 0)
+                .map(e => ({
+                  id: e.id,
+                  title: e.reason.trim(),
+                  amount: Number(e.amount) || 0,
+                })),
+              extraChargesTotal: dynamicExpensesTotal,
+              totalContract: currentTotalPrice,
+              totalPaid: currentAdvance,
+              balanceDue: pendingBalance,
+              payments:
+                currentAdvance > 0
+                  ? [
+                      {
+                        date: new Date().toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        }),
+                        mode: primaryPaymentMode,
+                        amount: currentAdvance,
+                      },
+                    ]
+                  : [],
+              currencySymbol,
+            });
+          }}
           onCreateAnother={handleResetWizard}
           onClose={() => {
             setIsSuccessModalVisible(false);

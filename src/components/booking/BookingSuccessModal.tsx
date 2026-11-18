@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -7,8 +7,9 @@ import {
   StyleSheet,
   Animated,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
-import { Check, Calendar } from 'lucide-react-native';
+import { Check, FileText } from 'lucide-react-native';
 import { colors } from '../../theme/colors';
 import { formatCurrency } from '../../utils/dateUtils';
 import { motionTokens } from '../../theme/motion';
@@ -25,6 +26,7 @@ interface BookingSuccessModalProps {
   billNumber?: string | null;
   currencySymbol?: string;
   isDark?: boolean;
+  onSharePdfBill?: () => Promise<void> | void;
   onCreateAnother: () => void;
   onClose: () => void;
 }
@@ -40,10 +42,22 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
   billNumber,
   currencySymbol = '₹',
   isDark = false,
+  onSharePdfBill,
   onCreateAnother,
   onClose,
 }) => {
   const t = isDark ? colors.dark : colors.light;
+  const [sharingPdf, setSharingPdf] = useState(false);
+
+  const handleSharePdf = async () => {
+    if (!onSharePdfBill || sharingPdf) return;
+    setSharingPdf(true);
+    try {
+      await onSharePdfBill();
+    } finally {
+      setSharingPdf(false);
+    }
+  };
 
   // LIFO overlay stack registration (Rule 1)
   useBackOverlay(visible, onClose);
@@ -202,19 +216,59 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
 
               {/* Actions */}
               <View style={styles.actionsContainer}>
+                {onSharePdfBill && (
+                  <Pressable
+                    onPress={handleSharePdf}
+                    disabled={sharingPdf}
+                    style={({ pressed }) => [
+                      styles.primaryBtn,
+                      {
+                        backgroundColor: isDark ? colors.gold[500] : colors.gold[600],
+                        flexDirection: 'row',
+                        gap: 8,
+                        transform: [{ scale: pressed ? 0.96 : 1 }],
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Share PDF Bill"
+                  >
+                    {sharingPdf ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <FileText size={16} color="#FFFFFF" strokeWidth={2.2} />
+                        <Text style={[styles.primaryBtnText, { color: '#FFFFFF' }]}>
+                          Share PDF Bill
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
+
                 <Pressable
                   onPress={onCreateAnother}
                   style={({ pressed }) => [
-                    styles.primaryBtn,
+                    styles.secondaryBtn,
                     {
-                      backgroundColor: isDark ? colors.gold[500] : colors.gold[600],
+                      backgroundColor: isDark
+                        ? 'rgba(214, 174, 107, 0.14)'
+                        : 'rgba(198, 151, 73, 0.12)',
+                      borderWidth: 1,
+                      borderColor: isDark
+                        ? 'rgba(214, 174, 107, 0.35)'
+                        : 'rgba(198, 151, 73, 0.35)',
                       transform: [{ scale: pressed ? 0.96 : 1 }],
                     },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="Create another booking"
                 >
-                  <Text style={styles.primaryBtnText}>
+                  <Text
+                    style={[
+                      styles.secondaryBtnText,
+                      { color: isDark ? colors.gold[400] : colors.gold[700] },
+                    ]}
+                  >
                     Create Another Booking
                   </Text>
                 </Pressable>

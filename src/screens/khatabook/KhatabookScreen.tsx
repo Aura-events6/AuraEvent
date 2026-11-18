@@ -39,7 +39,7 @@ import {
   computeKhatabookTotals,
   subscribeToPaymentChanges,
 } from '../../services/khatabookService';
-import { shareBillOnWhatsApp } from '../../utils/whatsapp';
+import { generateAndShareInvoicePdf } from '../../services/pdfService';
 import { KhatabookDueItem, KhatabookFilter } from '../../types/khatabook';
 import { ScreenBackground } from '../../components/common';
 
@@ -125,31 +125,28 @@ export const KhatabookScreen: React.FC = () => {
     });
   }, [dues, selectedFilter, searchQuery]);
 
-  // Handle WhatsApp Bill Sharing
+  // Handle Generate & Share PDF Bill via Native Share Sheet
   const handleWhatsAppBill = async (item: KhatabookDueItem) => {
-    const success = await shareBillOnWhatsApp({
+    await generateAndShareInvoicePdf({
+      billNumber: item.bill_number,
       hallName: hall?.name || 'Function Hall',
-      hallPhone: hall?.phone || '',
+      hallPhone: hall?.phone || null,
       hallAddress: hall?.address || null,
+      hallGst: hall?.gstNumber || null,
       customerName: item.customer_name,
       customerMobile: item.customer_mobile,
-      billNumber: item.bill_number,
       eventType: item.event_type,
       eventDate: item.start_date,
+      endDate: item.end_date,
       slot: item.slot,
-      totalContract: item.total_contract_amount,
-      totalPaid: item.total_paid,
-      balanceDue: item.pending_balance,
+      basePrice: Number(item.booking_price) || 0,
+      extraChargesTotal: Number(item.extra_charges) || 0,
+      totalContract: Number(item.total_contract_amount) || 0,
+      totalPaid: Number(item.total_paid) || 0,
+      balanceDue: Number(item.pending_balance) || 0,
       promisedPayByDate: item.latest_promised_pay_by_date,
-      upiId: hall?.phone ? `${hall.phone.replace(/[^0-9]/g, '')}@upi` : null,
+      currencySymbol,
     });
-
-    if (!success) {
-      Alert.alert(
-        'WhatsApp Not Available',
-        'Could not open WhatsApp on this device. Please verify WhatsApp is installed.'
-      );
-    }
   };
 
   // Strict Role & Permission Enforcement

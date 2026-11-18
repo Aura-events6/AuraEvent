@@ -11,7 +11,6 @@ import {
   StatusBar,
   Modal,
   TextInput,
-  Share,
   Platform,
   useWindowDimensions,
   RefreshControl,
@@ -45,6 +44,7 @@ import {
   fetchDashboardTimeline,
 } from '../services/dashboardService';
 import { recordPayment } from '../services/khatabookService';
+import { generateAndShareInvoicePdf } from '../services/pdfService';
 import { ScreenBackground } from '../components/common';
 import {
   DashboardYearKPIs,
@@ -275,12 +275,33 @@ export const DashboardScreen: React.FC = () => {
 
   const handleSendWhatsApp = async () => {
     if (!selectedDue) return;
-    const msg = `Dear ${selectedDue.customerName}, gentle reminder regarding the pending balance of ${selectedDue.dueAmount} for your ${selectedDue.eventType} booked at ${hall?.name || user?.hallName || 'Royal Palace'}. Kindly settle at your convenience.`;
     setIsWhatsAppModalOpen(false);
-    try {
-      await Share.share({ message: msg });
-    } catch {}
-    showToast('Reminder shared with customer');
+    const parseAmount = (val?: string) => Number((val || '0').replace(/[^0-9.]/g, '')) || 0;
+    const totalContractNum = parseAmount(selectedDue.totalContract);
+    const advancePaidNum = parseAmount(selectedDue.advancePaid);
+    const balanceDueNum = selectedDue.rawDue || Math.max(0, totalContractNum - advancePaidNum);
+
+    const res = await generateAndShareInvoicePdf({
+      billNumber: `${hall?.billPrefix || 'BILL-'}${selectedDue.bookingId.slice(0, 6).toUpperCase()}`,
+      hallName: hall?.name || user?.hallName || 'Function Hall',
+      hallPhone: hall?.phone || null,
+      hallAddress: hall?.address || null,
+      hallGst: hall?.gstNumber || null,
+      customerName: selectedDue.customerName,
+      customerMobile: selectedDue.phone,
+      eventType: selectedDue.eventType,
+      eventDate: selectedDue.rawDate || selectedDue.eventDate,
+      slot: selectedDue.slot,
+      basePrice: totalContractNum,
+      totalContract: totalContractNum,
+      totalPaid: advancePaidNum,
+      balanceDue: balanceDueNum,
+      currencySymbol: hall?.currency_symbol || '₹',
+    });
+
+    if (res.success) {
+      showToast('PDF Bill ready to share');
+    }
   };
 
   // Filtered timeline rows
@@ -903,7 +924,7 @@ export const DashboardScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, glassStyles.getCardStyle(isDark)]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: t.text }]}>WhatsApp Reminder</Text>
+              <Text style={[styles.modalTitle, { color: t.text }]}>Share PDF Invoice</Text>
               <Pressable
                 onPress={() => setIsWhatsAppModalOpen(false)}
                 style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.90 : 1 }] }]}
@@ -914,12 +935,12 @@ export const DashboardScreen: React.FC = () => {
             </View>
 
             <Text style={[styles.modalSubtitle, { color: t.textMuted }]}>
-              Recipient: <Text style={{ fontWeight: '700', color: t.text }}>{selectedDue?.phone}</Text>
+              Customer: <Text style={{ fontWeight: '700', color: t.text }}>{selectedDue?.customerName}</Text> ({selectedDue?.phone})
             </Text>
 
             <View style={[styles.waPreviewBox, { backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.04)' }]}>
               <Text style={[styles.waPreviewText, { color: t.text }]}>
-                {`Dear ${selectedDue?.customerName},\n\nThis is a friendly reminder from ${hall?.name || user?.hallName || 'Royal Palace Conventions'}. The pending amount of ${selectedDue?.dueAmount} for your ${selectedDue?.eventType} booking is due.\n\nPlease clear the balance at your earliest convenience.`}
+                {`A formatted PDF bill for ${selectedDue?.eventType} (${selectedDue?.eventDate}) showing Total Contract ${selectedDue?.totalContract}, Paid ${selectedDue?.advancePaid}, and Pending Due ${selectedDue?.dueAmount} will be generated and opened in your Android share sheet.`}
               </Text>
             </View>
 
@@ -930,9 +951,9 @@ export const DashboardScreen: React.FC = () => {
                 { transform: [{ scale: pressed ? 0.965 : 1 }] },
               ]}
             >
-              <LinearGradient colors={['#10B981', '#059669']} style={styles.modalPrimaryBtn}>
-                <Send size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.modalPrimaryBtnText}>Send on WhatsApp</Text>
+              <LinearGradient colors={colors.goldGradient} style={styles.modalPrimaryBtn}>
+                <FileText size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.modalPrimaryBtnText}>Generate & Share PDF Bill</Text>
               </LinearGradient>
             </Pressable>
           </View>
