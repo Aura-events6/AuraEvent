@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FileText, Check, IndianRupee } from 'lucide-react-native';
+import { FileText, Check, IndianRupee, BookMarked } from 'lucide-react-native';
 import { DashboardTimelineRowItem } from '../../types/dashboard';
 import { colors } from '../../theme/colors';
 import { glassStyles } from '../../theme/glass';
@@ -56,6 +56,7 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
 }) => {
   const t = isDark ? colors.dark : colors.light;
   const isPayment = item.category === 'payments';
+  const isDue = Boolean(item.dueAmountText);
   const { primary: primaryTime, secondary: secondaryTime } = parseTimelineStamp(item);
 
   const spineColor = isDark ? 'rgba(229, 198, 135, 0.32)' : 'rgba(198, 151, 73, 0.35)';
@@ -197,17 +198,29 @@ export const SwipeableTimelineCard: React.FC<SwipeableTimelineCardProps> = ({
             style={[
               styles.actionWellIconCircle,
               {
-                backgroundColor: isPayment ? t.emeraldPillBg : t.goldPillBg,
+                backgroundColor: isPayment
+                  ? t.emeraldPillBg
+                  : isDue
+                  ? t.amberPillBg
+                  : t.goldPillBg,
                 borderColor: isThresholdReached
                   ? isPayment
                     ? t.emeraldText
+                    : isDue
+                    ? t.amberText
                     : t.goldText
                   : 'transparent',
                 transform: [{ scale: iconScaleAnim }],
               },
             ]}
           >
-            <FileText size={18} color={isPayment ? t.emeraldText : t.goldText} />
+            {isPayment ? (
+              <IndianRupee size={18} color={t.emeraldText} />
+            ) : isDue ? (
+              <BookMarked size={18} color={t.amberText} />
+            ) : (
+              <FileText size={18} color={t.goldText} />
+            )}
           </Animated.View>
         </View>
 
@@ -283,14 +296,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 15,
     fontVariant: ['tabular-nums'],
-    backgroundColor: 'transparent',
   },
   timelineTimeSecondary: {
     fontSize: 11,
     fontWeight: '500',
     marginTop: 3,
     fontVariant: ['tabular-nums'],
-    backgroundColor: 'transparent',
   },
   timelineRailContainer: {
     width: 36,
@@ -300,7 +311,7 @@ const styles = StyleSheet.create({
   },
   railTopStem: {
     width: 2,
-    height: 12,
+    height: 16,
   },
   horizontalTick: {
     position: 'absolute',
@@ -389,13 +400,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: -0.1,
-    backgroundColor: 'transparent',
   },
   timelineCardSubtitle: {
     fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
-    backgroundColor: 'transparent',
   },
   billButton: {
     flexDirection: 'row',
@@ -410,7 +419,6 @@ const styles = StyleSheet.create({
   billButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    backgroundColor: 'transparent',
   },
   duePillBadge: {
     paddingHorizontal: 12,

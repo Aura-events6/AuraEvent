@@ -45,6 +45,16 @@ export function formatCompactCurrency(amount: number, symbol: string = '₹'): s
 }
 
 /**
+ * Formats a payment timeline amount with leading + sign matching HTML mockup (e.g. +₹60,000)
+ */
+export function formatPaymentTimelineAmount(amount: number, symbol: string = '₹'): string {
+  if (!amount || isNaN(amount) || amount === 0) {
+    return `+${symbol}0`;
+  }
+  return `+${symbol}${Math.round(amount).toLocaleString('en-IN')}`;
+}
+
+/**
  * Formats a local date (YYYY-MM-DD) into display string, e.g. "04 Nov"
  */
 function formatDisplayDayMonth(dateStr: string): string {
@@ -310,6 +320,7 @@ export async function fetchDashboardTimeline(
 
       const pendingBal = Number(b.pending_balance) || 0;
       const isPaid = pendingBal <= 0;
+      const derivedBill = b.bill_number || `RPC-${String(b.booking_id).slice(0, 4).toUpperCase()}`;
 
       items.push({
         id: `event_${b.booking_id}`,
@@ -320,7 +331,7 @@ export async function fetchDashboardTimeline(
         title: b.customer_name || `${b.event_type || 'Event'} Completed`,
         subtitle: `${b.event_type || 'Event'} • ${isPaid ? 'Paid' : 'Pending'}`,
         category: 'events',
-        billNumber: b.bill_number || undefined,
+        billNumber: isPaid ? derivedBill : (b.bill_number || undefined),
         dueAmountText: !isPaid ? `${formatCompactCurrency(pendingBal)} Due` : undefined,
         amount: b.total_contract_amount
           ? `₹${Number(b.total_contract_amount).toLocaleString('en-IN')}`

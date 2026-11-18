@@ -357,7 +357,7 @@ export const DashboardScreen: React.FC = () => {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* 1. HEADER: BRAND EMBLEM + LIVE STATUS + SPOTLIGHT SEARCH */}
+      {/* 1. HEADER: BRAND EMBLEM + SPOTLIGHT SEARCH */}
       <View
         style={[
           styles.headerWrapper,
@@ -479,7 +479,7 @@ export const DashboardScreen: React.FC = () => {
               </Text>
             </View>
             <View style={[styles.kpiIconBox, { backgroundColor: t.goldPillBg }]}>
-              <Coins size={20} color={t.goldText} strokeWidth={2.2} />
+              <Coins size={20} color={t.goldText} strokeWidth={2.4} />
             </View>
           </Pressable>
 
@@ -500,7 +500,7 @@ export const DashboardScreen: React.FC = () => {
               </Text>
             </View>
             <View style={[styles.kpiIconBox, { backgroundColor: t.emeraldPillBg }]}>
-              <CheckCircle2 size={20} color={t.emeraldText} strokeWidth={2.2} />
+              <CheckCircle2 size={20} color={t.emeraldText} strokeWidth={2.4} />
             </View>
           </View>
 
@@ -556,7 +556,7 @@ export const DashboardScreen: React.FC = () => {
                 color={
                   (kpis?.pendingDueAmount || 0) === 0 ? t.emeraldText : t.amberText
                 }
-                strokeWidth={2.2}
+                strokeWidth={2.4}
               />
             </View>
           </Pressable>
@@ -577,7 +577,7 @@ export const DashboardScreen: React.FC = () => {
               </Text>
             </View>
             <View style={[styles.kpiIconBox, { backgroundColor: t.goldPillBg }]}>
-              <CalendarCheck size={20} color={t.goldText} strokeWidth={2.2} />
+              <CalendarCheck size={20} color={t.goldText} strokeWidth={2.4} />
             </View>
           </View>
         </View>
@@ -630,7 +630,14 @@ export const DashboardScreen: React.FC = () => {
         ) : (
           <View style={{ position: 'relative' }}>
             <SkeletonShimmer active={loading || refreshing} borderRadius={24} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.duesCarousel}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.duesCarousel}
+              snapToInterval={292}
+              snapToAlignment="start"
+              decelerationRate="fast"
+            >
               {/* Max 4 Cards Rendered with Strict Design System */}
               {displayedDues.map(item => {
                 const isOverdue = item.status === 'Overdue';
@@ -1097,35 +1104,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  titleWithLive: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    minWidth: 0,
-  },
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.3,
     flexShrink: 1,
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    gap: 4,
-    flexShrink: 0,
-  },
-  livePulseDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  liveText: {
-    fontSize: 9,
-    fontWeight: '700',
   },
   headerSubtitle: {
     fontSize: 11,
@@ -1171,13 +1154,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 12,
+    rowGap: 14,
     marginBottom: 24,
   },
   kpiCard: {
     width: '48.2%',
     borderRadius: 24,
-    padding: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1191,22 +1175,19 @@ const styles = StyleSheet.create({
   kpiLabel: {
     fontSize: 12,
     fontWeight: '500',
-    backgroundColor: 'transparent',
   },
   kpiValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     letterSpacing: -0.4,
     marginTop: 2,
     fontVariant: ['tabular-nums'],
-    backgroundColor: 'transparent',
   },
   kpiSub: {
     fontSize: 11,
     fontWeight: '600',
     marginTop: 4,
     fontVariant: ['tabular-nums'],
-    backgroundColor: 'transparent',
   },
   kpiIconBox: {
     width: 44,
@@ -1314,13 +1295,11 @@ const styles = StyleSheet.create({
   dueCustomer: {
     fontSize: 14,
     fontWeight: '700',
-    backgroundColor: 'transparent',
   },
   dueEvent: {
     fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
-    backgroundColor: 'transparent',
   },
   dueDivider: {
     borderTopWidth: 1,
@@ -1339,7 +1318,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.3,
     fontVariant: ['tabular-nums'],
-    backgroundColor: 'transparent',
   },
   dueActionsRow: {
     flexDirection: 'row',
